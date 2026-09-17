@@ -11,6 +11,7 @@ abstract class PurchaseRepository {
   Stream<List<Purchase>> watchPurchasesForMonth(int year, int month);
   Stream<List<Purchase>> watchPurchasesForDate(String localDate);
   Stream<List<Purchase>> watchRecentPurchases({int limit = 10});
+  Stream<List<PurchaseListEntry>> watchRecentPurchaseEntries({int limit = 10});
   Stream<DzdAmount> watchMonthlyTotal(int year, int month);
   Future<List<Purchase>> getPurchasesForProduct(String productId);
   Future<Purchase> createPurchase({
@@ -28,6 +29,18 @@ abstract class PurchaseRepository {
   Future<void> deletePurchase(String id);
 }
 
+class PurchaseListEntry {
+  const PurchaseListEntry({
+    required this.purchase,
+    required this.productName,
+    this.storeName,
+  });
+
+  final Purchase purchase;
+  final String productName;
+  final String? storeName;
+}
+
 class DriftPurchaseRepository implements PurchaseRepository {
   DriftPurchaseRepository(this._db);
 
@@ -40,10 +53,12 @@ class DriftPurchaseRepository implements PurchaseRepository {
     final end = DateTime.utc(year, month + 1, 0, 23, 59, 59);
 
     return (_db.select(_db.purchases)
-          ..where((t) =>
-              t.purchasedAt.isBiggerOrEqualValue(start) &
-              t.purchasedAt.isSmallerOrEqualValue(end) &
-              t.deletedAt.isNull())
+          ..where(
+            (t) =>
+                t.purchasedAt.isBiggerOrEqualValue(start) &
+                t.purchasedAt.isSmallerOrEqualValue(end) &
+                t.deletedAt.isNull(),
+          )
           ..orderBy([(t) => OrderingTerm.desc(t.purchasedAt)]))
         .watch();
   }
@@ -63,6 +78,36 @@ class DriftPurchaseRepository implements PurchaseRepository {
           ..orderBy([(t) => OrderingTerm.desc(t.purchasedAt)])
           ..limit(limit))
         .watch();
+  }
+
+  @override
+  Stream<List<PurchaseListEntry>> watchRecentPurchaseEntries({int limit = 10}) {
+    final query =
+        _db.select(_db.purchases).join([
+            innerJoin(
+              _db.products,
+              _db.products.id.equalsExp(_db.purchases.productId),
+            ),
+            leftOuterJoin(
+              _db.stores,
+              _db.stores.id.equalsExp(_db.purchases.storeId),
+            ),
+          ])
+          ..where(_db.purchases.deletedAt.isNull())
+          ..orderBy([OrderingTerm.desc(_db.purchases.purchasedAt)])
+          ..limit(limit);
+
+    return query.watch().map(
+      (rows) => rows
+          .map(
+            (row) => PurchaseListEntry(
+              purchase: row.readTable(_db.purchases),
+              productName: row.readTable(_db.products).name,
+              storeName: row.readTableOrNull(_db.stores)?.name,
+            ),
+          )
+          .toList(),
+    );
   }
 
   @override
@@ -102,7 +147,10 @@ class DriftPurchaseRepository implements PurchaseRepository {
 
     // Calculate total DZD
     final totalDzd = isUnitPrice
-        ? DzdAmount.fromUnitAndQuantity(unitPrice: dzdPrice, quantity: decQty).dinars
+        ? DzdAmount.fromUnitAndQuantity(
+            unitPrice: dzdPrice,
+            quantity: decQty,
+          ).dinars
         : priceDzd;
 
     // Normalize base quantity
@@ -110,10 +158,13 @@ class DriftPurchaseRepository implements PurchaseRepository {
     final norm = UnitRegistry.normalizeToBase(quantity: decQty, unit: unit);
     final normBaseQty = norm?.normalizedQuantity.toDouble();
     final normRate = norm != null && norm.normalizedQuantity > Decimal.zero
-        ? (Decimal.fromInt(totalDzd) / norm.normalizedQuantity).toDecimal(scaleOnInfinitePrecision: 4).toDouble()
+        ? (Decimal.fromInt(totalDzd) / norm.normalizedQuantity)
+              .toDecimal(scaleOnInfinitePrecision: 4)
+              .toDouble()
         : null;
 
-    final localDate = '${purchasedAt.year.toString().padLeft(4, '0')}-${purchasedAt.month.toString().padLeft(2, '0')}-${purchasedAt.day.toString().padLeft(2, '0')}';
+    final localDate =
+        '${purchasedAt.year.toString().padLeft(4, '0')}-${purchasedAt.month.toString().padLeft(2, '0')}-${purchasedAt.day.toString().padLeft(2, '0')}';
 
     final purchaseCompanion = PurchasesCompanion.insert(
       id: id,
@@ -135,30 +186,35 @@ class DriftPurchaseRepository implements PurchaseRepository {
     // Transaction: Insert purchase and update product's last price and updated timestamp
     await _db.transaction(() async {
       await _db.into(_db.purchases).insert(purchaseCompanion);
-      await (_db.update(_db.products)..where((t) => t.id.equals(productId))).write(
+      await (_db.update(
+        _db.products,
+      )..where((t) => t.id.equals(productId))).write(
         ProductsCompanion(
-          lastPriceDzd: Value(isUnitPrice ? priceDzd : (totalDzd ~/ quantity).toInt()),
+          lastPriceDzd: Value(
+            isUnitPrice ? priceDzd : (totalDzd ~/ quantity).toInt(),
+          ),
           preferredUnitId: Value(unitId),
           updatedAt: Value(DateTime.now().toUtc()),
         ),
       );
     });
 
-    return (await (_db.select(_db.purchases)..where((t) => t.id.equals(id))).getSingle());
+    return (await (_db.select(
+      _db.purchases,
+    )..where((t) => t.id.equals(id))).getSingle());
   }
 
   @override
   Future<void> updatePurchase(Purchase purchase) async {
-    await (_db.update(_db.purchases)..where((t) => t.id.equals(purchase.id)))
-        .write(purchase);
+    await (_db.update(
+      _db.purchases,
+    )..where((t) => t.id.equals(purchase.id))).write(purchase);
   }
 
   @override
   Future<void> deletePurchase(String id) async {
     await (_db.update(_db.purchases)..where((t) => t.id.equals(id))).write(
-      PurchasesCompanion(
-        deletedAt: Value(DateTime.now().toUtc()),
-      ),
+      PurchasesCompanion(deletedAt: Value(DateTime.now().toUtc())),
     );
   }
 }

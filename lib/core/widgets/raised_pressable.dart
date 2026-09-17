@@ -1,22 +1,22 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../app/theme/qoffa_tokens.dart';
 
-/// A tactile 3D pressable widget inspired by physical arcade buttons.
-///
-/// On pointer down, the top face translates downward by [shadowOffset]
-/// into the solid shadow layer base, providing immediate visual and physical feedback.
+/// Qoffa's tactile interaction, adapted from Prism's two-layer buttons.
+/// A solid darker base stays fixed while the face travels down into it.
 class RaisedPressable extends StatefulWidget {
   const RaisedPressable({
     required this.child,
     required this.onTap,
     this.width,
     this.height,
-    this.radius = const BorderRadius.all(Radius.circular(QoffaTokens.radiusCompact)),
+    this.radius = const BorderRadius.all(
+      Radius.circular(QoffaTokens.radiusCompact),
+    ),
     this.shadowOffset = QoffaTokens.buttonShadowOffset,
     this.shadowColor = const Color(0xFF056629),
     this.enabled = true,
-    this.actionDelay = const Duration(milliseconds: 60),
+    this.enableHaptics = true,
     super.key,
   });
 
@@ -28,7 +28,7 @@ class RaisedPressable extends StatefulWidget {
   final double shadowOffset;
   final Color shadowColor;
   final bool enabled;
-  final Duration actionDelay;
+  final bool enableHaptics;
 
   @override
   State<RaisedPressable> createState() => _RaisedPressableState();
@@ -37,8 +37,6 @@ class RaisedPressable extends StatefulWidget {
 class _RaisedPressableState extends State<RaisedPressable>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  Timer? _tapTimer;
-  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -52,105 +50,109 @@ class _RaisedPressableState extends State<RaisedPressable>
 
   @override
   void dispose() {
-    _isDisposed = true;
-    _cancelPendingTap();
     _controller.dispose();
     super.dispose();
   }
 
-  void _cancelPendingTap() {
-    _tapTimer?.cancel();
-    _tapTimer = null;
-  }
-
   void _press() {
-    if (_isDisposed || !mounted || !widget.enabled) return;
+    if (!mounted || !widget.enabled) return;
+    if (widget.enableHaptics) HapticFeedback.selectionClick();
     _controller.forward();
   }
 
   void _release() {
-    if (_isDisposed || !mounted) return;
+    if (!mounted) return;
     _controller.reverse();
   }
 
   void _handleTap() {
     if (!widget.enabled) return;
-    _cancelPendingTap();
-    _tapTimer = Timer(widget.actionDelay, () {
-      _tapTimer = null;
-      if (mounted && widget.enabled) {
-        widget.onTap();
-      }
-    });
+    widget.onTap();
   }
 
   void _handleTapCancel() {
-    _cancelPendingTap();
     _release();
   }
 
   @override
   Widget build(BuildContext context) {
-    final effectiveHeight = widget.height;
-
     final content = SizedBox(
       width: widget.width,
-      height: effectiveHeight != null
-          ? effectiveHeight + widget.shadowOffset
-          : null,
+      height: widget.height == null
+          ? null
+          : widget.height! + widget.shadowOffset,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Bottom physical shadow slab
           Positioned(
             left: 0.5,
             right: 0.5,
             top: widget.shadowOffset,
-            bottom: 0,
             child: Container(
-              height: effectiveHeight,
+              height: widget.height,
               decoration: BoxDecoration(
                 color: widget.shadowColor,
                 borderRadius: widget.radius,
               ),
             ),
           ),
-          // Top face that translates downwards on press
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, child) {
-              final eased = Curves.easeOutCubic.transform(_controller.value);
-              return Transform.translate(
-                offset: Offset(0, widget.shadowOffset * eased),
-                child: child,
-              );
-            },
-            child: Container(
-              width: widget.width,
-              height: effectiveHeight,
-              decoration: BoxDecoration(
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            height: widget.height,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                final eased = Curves.easeOutCubic.transform(_controller.value);
+                return Transform.translate(
+                  offset: Offset(0, widget.shadowOffset * eased),
+                  child: child,
+                );
+              },
+              child: ClipRRect(
                 borderRadius: widget.radius,
+                child: SizedBox(
+                  width: widget.width,
+                  height: widget.height,
+                  child: widget.child,
+                ),
               ),
-              child: widget.child,
             ),
           ),
         ],
       ),
     );
 
-    return Listener(
-      behavior: HitTestBehavior.opaque,
-      onPointerDown: (_) {
-        _cancelPendingTap();
-        _press();
-      },
-      onPointerUp: (_) => _release(),
-      onPointerCancel: (_) => _handleTapCancel(),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapCancel: _handleTapCancel,
-        onTap: _handleTap,
-        child: content,
+    return Semantics(
+      button: true,
+      enabled: widget.enabled,
+      child: FocusableActionDetector(
+        enabled: widget.enabled,
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              _handleTap();
+              return null;
+            },
+          ),
+        },
+        child: Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerDown: (_) => _press(),
+          onPointerUp: (_) => _release(),
+          onPointerCancel: (_) => _handleTapCancel(),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapCancel: _handleTapCancel,
+            onTap: _handleTap,
+            child: AnimatedOpacity(
+              duration: QoffaTokens.motionFast,
+              opacity: widget.enabled ? 1 : 0.58,
+              child: content,
+            ),
+          ),
+        ),
       ),
     );
   }

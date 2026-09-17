@@ -172,8 +172,7 @@ class UnitRegistry {
 
   static QoffaUnit? findById(String id) => _unitMap[id];
 
-  static QoffaUnit fromIdOrFallback(String id) =>
-      _unitMap[id] ?? piece;
+  static QoffaUnit fromIdOrFallback(String id) => _unitMap[id] ?? piece;
 
   /// Returns whether two units can be directly converted without product-specific rules.
   static bool areCompatible(QoffaUnit u1, QoffaUnit u2) {
@@ -206,34 +205,29 @@ class UnitRegistry {
   }
 
   /// Normalizes to standard comparative base (kg, L, or piece)
-  static ({Decimal normalizedQuantity, String normalizedUnitSymbol})? normalizeToBase({
-    required Decimal quantity,
-    required QoffaUnit unit,
-  }) {
+  static ({Decimal normalizedQuantity, String normalizedUnitSymbol})?
+  normalizeToBase({required Decimal quantity, required QoffaUnit unit}) {
     switch (unit.dimension) {
       case UnitDimension.mass:
-        final inKg = convert(
-          value: quantity,
-          fromUnit: unit,
-          toUnit: kilogram,
-        );
-        return inKg == null ? null : (normalizedQuantity: inKg, normalizedUnitSymbol: 'kg');
+        final inKg = convert(value: quantity, fromUnit: unit, toUnit: kilogram);
+        return inKg == null
+            ? null
+            : (normalizedQuantity: inKg, normalizedUnitSymbol: 'kg');
       case UnitDimension.volume:
-        final inL = convert(
-          value: quantity,
-          fromUnit: unit,
-          toUnit: liter,
-        );
-        return inL == null ? null : (normalizedQuantity: inL, normalizedUnitSymbol: 'L');
+        final inL = convert(value: quantity, fromUnit: unit, toUnit: liter);
+        return inL == null
+            ? null
+            : (normalizedQuantity: inL, normalizedUnitSymbol: 'L');
       case UnitDimension.count:
-        final inPc = convert(
-          value: quantity,
-          fromUnit: unit,
-          toUnit: piece,
-        );
-        return inPc == null ? null : (normalizedQuantity: inPc, normalizedUnitSymbol: 'pc');
+        final inPc = convert(value: quantity, fromUnit: unit, toUnit: piece);
+        return inPc == null
+            ? null
+            : (normalizedQuantity: inPc, normalizedUnitSymbol: 'pc');
       case UnitDimension.custom:
-        return (normalizedQuantity: quantity, normalizedUnitSymbol: unit.symbolEn);
+        return (
+          normalizedQuantity: quantity,
+          normalizedUnitSymbol: unit.symbolEn,
+        );
     }
   }
 }

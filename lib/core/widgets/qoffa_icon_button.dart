@@ -11,7 +11,6 @@ class QoffaIconButton extends StatelessWidget {
     this.iconSize = 26.0,
     this.faceColor = QoffaColors.whiteSurface,
     this.iconColor = QoffaColors.primaryNavy,
-    this.shadowColor,
     this.tooltip,
     super.key,
   });
@@ -22,12 +21,10 @@ class QoffaIconButton extends StatelessWidget {
   final double iconSize;
   final Color faceColor;
   final Color iconColor;
-  final Color? shadowColor;
   final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
-    final effectiveShadow = shadowColor ?? QoffaColors.smartShadow(faceColor);
     final radius = BorderRadius.circular(QoffaTokens.radiusControls);
 
     final button = RaisedPressable(
@@ -35,8 +32,9 @@ class QoffaIconButton extends StatelessWidget {
       width: size,
       height: size,
       radius: radius,
-      shadowOffset: 4.0,
-      shadowColor: effectiveShadow,
+      shadowOffset: 4,
+      shadowColor: QoffaColors.smartShadow(faceColor),
+      enableHaptics: true,
       child: Container(
         width: size,
         height: size,

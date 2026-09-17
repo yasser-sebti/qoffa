@@ -57,7 +57,10 @@ void main() {
       );
 
       expect(result.outcomeType, LaterBuyOutcomeType.savedMoney);
-      expect(result.absoluteDifferenceDzd.dinars, 20); // 200 - 180 = 20 DA saved
+      expect(
+        result.absoluteDifferenceDzd.dinars,
+        20,
+      ); // 200 - 180 = 20 DA saved
       expect(result.isComparable, isTrue);
     });
 

@@ -22,12 +22,16 @@ class QoffaColors {
   static const Color mutedText = Color(0xFF8FA397);
 
   // Semantic Status Colors
-  static const Color warningCoral = Color(0xFFFF6264); // Price increase, Later Buy
+  static const Color warningCoral = Color(
+    0xFFFF6264,
+  ); // Price increase, Later Buy
   static const Color warningCoralDeep = Color(0xFFD94547);
   static const Color noteYellow = Color(0xFFFFB416); // Food Notebook
   static const Color noteYellowDeep = Color(0xFFD69308);
   static const Color eventMint = Color(0xFF22C98D); // Purchase timeline dot
-  static const Color priceDecrease = Color(0xFF0AA343); // Cheaper than last time
+  static const Color priceDecrease = Color(
+    0xFF0AA343,
+  ); // Cheaper than last time
   static const Color goldAccent = Color(0xFFFFC000);
 
   // Secondary Accents
@@ -52,6 +56,9 @@ class QoffaColors {
     }
     final targetLightness = (hsl.lightness - 0.22).clamp(0.12, 0.40);
     final targetSaturation = (hsl.saturation * 1.05).clamp(0.0, 1.0);
-    return hsl.withLightness(targetLightness).withSaturation(targetSaturation).toColor();
+    return hsl
+        .withLightness(targetLightness)
+        .withSaturation(targetSaturation)
+        .toColor();
   }
 }

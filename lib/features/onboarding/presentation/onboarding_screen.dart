@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../app/localization/app_localizations.dart';
 import '../../../app/localization/locale_provider.dart';
 import '../../../app/theme/qoffa_colors.dart';
 import '../../../app/theme/qoffa_tokens.dart';
 import '../../../core/widgets/mint_background_scaffold.dart';
 import '../../../core/widgets/qoffa_button.dart';
+import '../../../core/widgets/qoffa_layout.dart';
 import '../../settings/data/settings_repository.dart';
 import '../data/onboarding_service.dart';
 
@@ -18,8 +20,8 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  int _currentStep = 0;
-  String _selectedLang = 'ar';
+  int _step = 0;
+  String _language = 'ar';
   final _budgetController = TextEditingController(text: '60000');
   int _householdSize = 4;
 
@@ -29,320 +31,375 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.dispose();
   }
 
-  void _finish() async {
-    final settingsRepo = ref.read(settingsRepositoryProvider);
-    final onboardingService = ref.read(onboardingServiceProvider);
-
-    final budget = int.tryParse(_budgetController.text) ?? 60000;
-    await settingsRepo.updateLanguage(_selectedLang);
-    await settingsRepo.updateMonthlyBudget(budget);
-    await settingsRepo.updateHouseholdSize(_householdSize);
-    await onboardingService.setCompleted();
-
-    ref.read(localeNotifierProvider.notifier).setLocale(_selectedLang);
-
-    if (mounted) {
-      context.go('/');
-    }
+  Future<void> _finish() async {
+    final settings = ref.read(settingsRepositoryProvider);
+    await settings.updateLanguage(_language);
+    await settings.updateMonthlyBudget(
+      int.tryParse(_budgetController.text) ?? 60000,
+    );
+    await settings.updateHouseholdSize(_householdSize);
+    await ref.read(onboardingServiceProvider).setCompleted();
+    await ref.read(localeNotifierProvider.notifier).setLocale(_language);
+    if (mounted) context.go('/');
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations(Locale(_language));
+    final direction = _language == 'ar' ? TextDirection.rtl : TextDirection.ltr;
+
     return MintBackgroundScaffold(
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: Column(
-            children: [
-              // Header
-              const SizedBox(height: 20),
-              const Center(
-                child: Text(
-                  'قفة · Qoffa',
-                  style: TextStyle(
-                    fontFamily: 'Hero Sandwich Pro',
-                    fontSize: 34,
-                    fontWeight: FontWeight.w900,
-                    color: QoffaColors.brandGreen,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Center(
-                child: Text(
-                  'مساعدك اليومي لمتابعة مصاريف التغذية والتسوق',
-                  style: TextStyle(
-                    fontFamily: 'Alexandria',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: QoffaColors.secondarySage,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // Page Content
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child: _buildCurrentStep(),
-                ),
-              ),
-
-              // Bottom Actions
-              Row(
+        child: Directionality(
+          textDirection: direction,
+          child: QoffaContentWidth(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 20, 22, 16),
+              child: Column(
                 children: [
-                  if (_currentStep > 0) ...[
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, color: QoffaColors.primaryNavy),
-                      onPressed: () => setState(() => _currentStep--),
+                  Text(
+                    l10n.appTitle,
+                    style: const TextStyle(
+                      fontFamily: 'Hero Sandwich Pro',
+                      fontSize: 36,
+                      height: 1,
+                      fontWeight: FontWeight.w900,
+                      color: QoffaColors.actionGreen,
                     ),
-                    const SizedBox(width: 8),
-                  ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.onboardingTagline,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Alexandria',
+                      fontSize: 13,
+                      height: 1.4,
+                      color: QoffaColors.secondarySage,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(
+                      3,
+                      (index) => AnimatedContainer(
+                        duration: QoffaTokens.motionMedium,
+                        width: index == _step ? 28 : 8,
+                        height: 8,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: BoxDecoration(
+                          color: index == _step
+                              ? QoffaColors.actionGreen
+                              : QoffaColors.softBorder,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
                   Expanded(
-                    child: QoffaButton(
-                      label: _currentStep == 2 ? 'ابدأ الاستخدام الآن' : 'متابعة',
-                      icon: _currentStep == 2 ? Icons.check_circle_rounded : Icons.arrow_forward_rounded,
-                      onTap: () {
-                        if (_currentStep < 2) {
-                          setState(() => _currentStep++);
-                        } else {
-                          _finish();
-                        }
-                      },
+                    child: AnimatedSwitcher(
+                      duration: QoffaTokens.motionMedium,
+                      switchInCurve: Curves.easeOutCubic,
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.04, 0),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      ),
+                      child: SingleChildScrollView(
+                        key: ValueKey(_step),
+                        child: _stepContent(l10n),
+                      ),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCurrentStep() {
-    switch (_currentStep) {
-      case 0:
-        return _buildLanguageStep();
-      case 1:
-        return _buildBudgetStep();
-      case 2:
-      default:
-        return _buildPrivacyStep();
-    }
-  }
-
-  Widget _buildLanguageStep() {
-    return Column(
-      key: const ValueKey(0),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'اختر لغة التطبيق / Choisissez la langue',
-          style: TextStyle(
-            fontFamily: 'Hero Sandwich Pro',
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: QoffaColors.primaryNavy,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'يمكنك تغيير اللغة في أي وقت من الإعدادات لاحقاً.',
-          style: TextStyle(fontFamily: 'Alexandria', fontSize: 13, color: QoffaColors.secondarySage),
-        ),
-        const SizedBox(height: 24),
-        _buildLangCard('العربية (الجزائر)', 'ar'),
-        const SizedBox(height: 12),
-        _buildLangCard('Français', 'fr'),
-        const SizedBox(height: 12),
-        _buildLangCard('English', 'en'),
-      ],
-    );
-  }
-
-  Widget _buildLangCard(String label, String code) {
-    final isSelected = _selectedLang == code;
-    return InkWell(
-      onTap: () => setState(() => _selectedLang = code),
-      borderRadius: BorderRadius.circular(QoffaTokens.radiusMajor),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(QoffaTokens.radiusMajor),
-          border: Border.all(
-            color: isSelected ? QoffaColors.brandGreen : QoffaColors.softBorder,
-            width: isSelected ? 2.5 : 1.5,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'Alexandria',
-                fontSize: 16,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? QoffaColors.brandGreen : QoffaColors.primaryNavy,
-              ),
-            ),
-            if (isSelected)
-              const Icon(Icons.check_circle_rounded, color: QoffaColors.brandGreen),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBudgetStep() {
-    return Column(
-      key: const ValueKey(1),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'ميزانية التسوق الشهرية (اختيارية)',
-          style: TextStyle(
-            fontFamily: 'Hero Sandwich Pro',
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: QoffaColors.primaryNavy,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'تساعدك على معرفة وتيرة الصرف والتنبؤ بمصروف نهاية الشهر بدقة.',
-          style: TextStyle(fontFamily: 'Alexandria', fontSize: 13, color: QoffaColors.secondarySage),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(QoffaTokens.radiusMajor),
-            border: Border.all(color: QoffaColors.softBorder, width: 1.5),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('الميزانية التقديرية للشهر', style: TextStyle(fontFamily: 'Alexandria', fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _budgetController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: const TextStyle(
-                  fontFamily: 'Hero Sandwich Pro',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: QoffaColors.brandGreen,
-                ),
-                decoration: InputDecoration(
-                  suffixText: 'دج',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(QoffaTokens.radiusFields)),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('عدد أفراد الأسرة', style: TextStyle(fontFamily: 'Alexandria', fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 14),
                   Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, color: QoffaColors.secondarySage),
-                        onPressed: _householdSize > 1 ? () => setState(() => _householdSize--) : null,
-                      ),
-                      Text(
-                        '$_householdSize',
-                        style: const TextStyle(fontFamily: 'Hero Sandwich Pro', fontSize: 18, fontWeight: FontWeight.w900),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline, color: QoffaColors.brandGreen),
-                        onPressed: () => setState(() => _householdSize++),
+                      if (_step > 0) ...[
+                        IconButton.outlined(
+                          onPressed: () => setState(() => _step--),
+                          icon: const Icon(Icons.arrow_back_rounded),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      Expanded(
+                        child: QoffaButton(
+                          label: _step == 2
+                              ? l10n.startNow
+                              : l10n.continueLabel,
+                          icon: _step == 2
+                              ? Icons.check_rounded
+                              : Icons.arrow_forward_rounded,
+                          onTap: () {
+                            if (_step < 2) {
+                              setState(() => _step++);
+                            } else {
+                              _finish();
+                            }
+                          },
+                        ),
                       ),
                     ],
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPrivacyStep() {
-    return Column(
-      key: const ValueKey(2),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '100% محلي وبدون إنترنت',
-          style: TextStyle(
-            fontFamily: 'Hero Sandwich Pro',
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
-            color: QoffaColors.primaryNavy,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'أمان تام وخصوصية كاملة لمعلومات مشتريات أسرتك.',
-          style: TextStyle(fontFamily: 'Alexandria', fontSize: 13, color: QoffaColors.secondarySage),
-        ),
-        const SizedBox(height: 24),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: QoffaColors.mintSurfaceTint,
-            borderRadius: BorderRadius.circular(QoffaTokens.radiusMajor),
-            border: Border.all(color: QoffaColors.softBorder, width: 1.5),
-          ),
-          child: Column(
-            children: [
-              _buildFeatureRow(Icons.cloud_off_rounded, 'بياناتك لا تخرج من هاتفك أبداً ولا تتصل بأي خادم خارجي.'),
-              const SizedBox(height: 16),
-              _buildFeatureRow(Icons.flash_on_rounded, 'سريع جداً وفوري ويعمل بدون شبكة وفي وضع الطيران.'),
-              const SizedBox(height: 16),
-              _buildFeatureRow(Icons.lock_outline_rounded, 'إمكانية تصدير نسخة احتياطية من بياناتك في أي وقت بسهولة.'),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFeatureRow(IconData icon, String text) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: QoffaColors.brandGreen,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: Colors.white, size: 20),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontFamily: 'Alexandria',
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: QoffaColors.primaryNavy,
-              height: 1.4,
             ),
           ),
         ),
-      ],
+      ),
     );
   }
+
+  Widget _stepContent(AppLocalizations l10n) => switch (_step) {
+    0 => _languageStep(l10n),
+    1 => _budgetStep(l10n),
+    _ => _privacyStep(l10n),
+  };
+
+  Widget _languageStep(AppLocalizations l10n) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _StepTitle(title: l10n.chooseLanguage, subtitle: l10n.languageCanChange),
+      const SizedBox(height: 20),
+      _LanguageChoice(
+        label: 'العربية (الجزائر)',
+        selected: _language == 'ar',
+        onTap: () => setState(() => _language = 'ar'),
+      ),
+      const SizedBox(height: 10),
+      _LanguageChoice(
+        label: 'Français',
+        selected: _language == 'fr',
+        onTap: () => setState(() => _language = 'fr'),
+      ),
+      const SizedBox(height: 10),
+      _LanguageChoice(
+        label: 'English',
+        selected: _language == 'en',
+        onTap: () => setState(() => _language = 'en'),
+      ),
+    ],
+  );
+
+  Widget _budgetStep(AppLocalizations l10n) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _StepTitle(title: l10n.optionalBudget, subtitle: l10n.budgetHelp),
+      const SizedBox(height: 20),
+      QoffaCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.estimatedBudget,
+              style: const TextStyle(
+                fontFamily: 'Alexandria',
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _budgetController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: const InputDecoration(suffixText: 'DA'),
+              style: const TextStyle(
+                fontFamily: 'Hero Sandwich Pro',
+                fontSize: 23,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.householdSize,
+                    style: const TextStyle(
+                      fontFamily: 'Alexandria',
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _householdSize > 1
+                      ? () => setState(() => _householdSize--)
+                      : null,
+                  icon: const Icon(Icons.remove_circle_outline_rounded),
+                ),
+                Text(
+                  '$_householdSize',
+                  style: const TextStyle(
+                    fontFamily: 'Hero Sandwich Pro',
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => setState(() => _householdSize++),
+                  icon: const Icon(
+                    Icons.add_circle_rounded,
+                    color: QoffaColors.actionGreen,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _privacyStep(AppLocalizations l10n) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _StepTitle(title: l10n.privacyTitle, subtitle: l10n.privacySubtitle),
+      const SizedBox(height: 20),
+      QoffaCard(
+        color: QoffaColors.mintSurfaceTint,
+        child: Column(
+          children: [
+            _FeatureRow(icon: Icons.cloud_off_rounded, text: l10n.localFeature),
+            const SizedBox(height: 16),
+            _FeatureRow(icon: Icons.bolt_rounded, text: l10n.fastFeature),
+            const SizedBox(height: 16),
+            _FeatureRow(
+              icon: Icons.file_download_outlined,
+              text: l10n.backupFeature,
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+class _StepTitle extends StatelessWidget {
+  const _StepTitle({required this.title, required this.subtitle});
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        title,
+        style: const TextStyle(
+          fontFamily: 'Hero Sandwich Pro',
+          fontSize: 23,
+          fontWeight: FontWeight.w900,
+          color: QoffaColors.primaryNavy,
+        ),
+      ),
+      const SizedBox(height: 7),
+      Text(
+        subtitle,
+        style: const TextStyle(
+          fontFamily: 'Alexandria',
+          fontSize: 13,
+          height: 1.45,
+          color: QoffaColors.secondarySage,
+        ),
+      ),
+    ],
+  );
+}
+
+class _LanguageChoice extends StatelessWidget {
+  const _LanguageChoice({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(QoffaTokens.radiusCompact),
+      child: AnimatedContainer(
+        duration: QoffaTokens.motionMedium,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        decoration: BoxDecoration(
+          color: selected ? QoffaColors.mintSurfaceTint : Colors.white,
+          borderRadius: BorderRadius.circular(QoffaTokens.radiusCompact),
+          border: Border.all(
+            color: selected ? QoffaColors.actionGreen : QoffaColors.softBorder,
+            width: selected ? 2 : 1.2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: 'Alexandria',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? QoffaColors.actionGreen
+                      : QoffaColors.primaryNavy,
+                ),
+              ),
+            ),
+            AnimatedScale(
+              scale: selected ? 1 : 0,
+              duration: QoffaTokens.motionMedium,
+              child: const Icon(
+                Icons.check_circle_rounded,
+                color: QoffaColors.actionGreen,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _FeatureRow extends StatelessWidget {
+  const _FeatureRow({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: QoffaColors.actionGreen,
+          borderRadius: BorderRadius.circular(13),
+        ),
+        child: Icon(icon, color: Colors.white, size: 21),
+      ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontFamily: 'Alexandria',
+            fontSize: 13,
+            height: 1.45,
+            fontWeight: FontWeight.w600,
+            color: QoffaColors.primaryNavy,
+          ),
+        ),
+      ),
+    ],
+  );
 }

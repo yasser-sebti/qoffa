@@ -7,6 +7,7 @@ import '../../purchases/data/purchase_repository.dart';
 
 abstract class LaterBuyRepository {
   Stream<List<LaterBuyItem>> watchItemsByStatus(String status);
+  Stream<List<LaterBuyListEntry>> watchEntriesByStatus(String status);
   Stream<int> watchPendingCount();
   Future<LaterBuyItem?> findActiveItemForProduct(String productId);
   Future<LaterBuyItem> createLaterBuyItem({
@@ -31,6 +32,18 @@ abstract class LaterBuyRepository {
   });
 }
 
+class LaterBuyListEntry {
+  const LaterBuyListEntry({
+    required this.item,
+    required this.productName,
+    this.storeName,
+  });
+
+  final LaterBuyItem item;
+  final String productName;
+  final String? storeName;
+}
+
 class DriftLaterBuyRepository implements LaterBuyRepository {
   DriftLaterBuyRepository(this._db, this._purchaseRepo);
 
@@ -47,6 +60,38 @@ class DriftLaterBuyRepository implements LaterBuyRepository {
   }
 
   @override
+  Stream<List<LaterBuyListEntry>> watchEntriesByStatus(String status) {
+    final query =
+        _db.select(_db.laterBuyItems).join([
+            innerJoin(
+              _db.products,
+              _db.products.id.equalsExp(_db.laterBuyItems.productId),
+            ),
+            leftOuterJoin(
+              _db.stores,
+              _db.stores.id.equalsExp(_db.laterBuyItems.storeId),
+            ),
+          ])
+          ..where(
+            _db.laterBuyItems.status.equals(status) &
+                _db.laterBuyItems.deletedAt.isNull(),
+          )
+          ..orderBy([OrderingTerm.desc(_db.laterBuyItems.createdAt)]);
+
+    return query.watch().map(
+      (rows) => rows
+          .map(
+            (row) => LaterBuyListEntry(
+              item: row.readTable(_db.laterBuyItems),
+              productName: row.readTable(_db.products).name,
+              storeName: row.readTableOrNull(_db.stores)?.name,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  @override
   Stream<int> watchPendingCount() {
     return (_db.select(_db.laterBuyItems)
           ..where((t) => t.status.equals('active') & t.deletedAt.isNull()))
@@ -56,11 +101,12 @@ class DriftLaterBuyRepository implements LaterBuyRepository {
 
   @override
   Future<LaterBuyItem?> findActiveItemForProduct(String productId) {
-    return (_db.select(_db.laterBuyItems)
-          ..where((t) =>
+    return (_db.select(_db.laterBuyItems)..where(
+          (t) =>
               t.productId.equals(productId) &
               t.status.equals('active') &
-              t.deletedAt.isNull()))
+              t.deletedAt.isNull(),
+        ))
         .getSingleOrNull();
   }
 
@@ -94,7 +140,9 @@ class DriftLaterBuyRepository implements LaterBuyRepository {
     );
 
     await _db.into(_db.laterBuyItems).insert(companion);
-    return (await (_db.select(_db.laterBuyItems)..where((t) => t.id.equals(id))).getSingle());
+    return (await (_db.select(
+      _db.laterBuyItems,
+    )..where((t) => t.id.equals(id))).getSingle());
   }
 
   @override
@@ -117,9 +165,9 @@ class DriftLaterBuyRepository implements LaterBuyRepository {
     required DateTime purchasedAt,
     String? storeId,
   }) async {
-    final item = await (_db.select(_db.laterBuyItems)
-          ..where((t) => t.id.equals(laterBuyId)))
-        .getSingleOrNull();
+    final item = await (_db.select(
+      _db.laterBuyItems,
+    )..where((t) => t.id.equals(laterBuyId))).getSingleOrNull();
     if (item == null) return;
 
     await _db.transaction(() async {
@@ -135,7 +183,9 @@ class DriftLaterBuyRepository implements LaterBuyRepository {
       );
 
       // 2. Mark Later Buy item as bought and link purchase
-      await (_db.update(_db.laterBuyItems)..where((t) => t.id.equals(laterBuyId))).write(
+      await (_db.update(
+        _db.laterBuyItems,
+      )..where((t) => t.id.equals(laterBuyId))).write(
         LaterBuyItemsCompanion(
           status: const Value('bought'),
           resolvedPurchaseId: Value(purchase.id),

@@ -1,11 +1,6 @@
 import 'package:decimal/decimal.dart';
 
-enum UnitDimension {
-  mass,
-  volume,
-  count,
-  custom,
-}
+enum UnitDimension { mass, volume, count, custom }
 
 class QoffaUnit {
   const QoffaUnit({

@@ -63,11 +63,41 @@ void main() {
 
     test('marks as fully reliable when >= 5 products and >= 50% coverage', () {
       final matches = [
-        const MatchedProductPriceComparison(productId: '1', productName: 'A', previousNormalizedRate: 100, currentNormalizedRate: 110, weightShareInPreviousPeriod: 0.2),
-        const MatchedProductPriceComparison(productId: '2', productName: 'B', previousNormalizedRate: 100, currentNormalizedRate: 110, weightShareInPreviousPeriod: 0.2),
-        const MatchedProductPriceComparison(productId: '3', productName: 'C', previousNormalizedRate: 100, currentNormalizedRate: 110, weightShareInPreviousPeriod: 0.2),
-        const MatchedProductPriceComparison(productId: '4', productName: 'D', previousNormalizedRate: 100, currentNormalizedRate: 110, weightShareInPreviousPeriod: 0.2),
-        const MatchedProductPriceComparison(productId: '5', productName: 'E', previousNormalizedRate: 100, currentNormalizedRate: 110, weightShareInPreviousPeriod: 0.2),
+        const MatchedProductPriceComparison(
+          productId: '1',
+          productName: 'A',
+          previousNormalizedRate: 100,
+          currentNormalizedRate: 110,
+          weightShareInPreviousPeriod: 0.2,
+        ),
+        const MatchedProductPriceComparison(
+          productId: '2',
+          productName: 'B',
+          previousNormalizedRate: 100,
+          currentNormalizedRate: 110,
+          weightShareInPreviousPeriod: 0.2,
+        ),
+        const MatchedProductPriceComparison(
+          productId: '3',
+          productName: 'C',
+          previousNormalizedRate: 100,
+          currentNormalizedRate: 110,
+          weightShareInPreviousPeriod: 0.2,
+        ),
+        const MatchedProductPriceComparison(
+          productId: '4',
+          productName: 'D',
+          previousNormalizedRate: 100,
+          currentNormalizedRate: 110,
+          weightShareInPreviousPeriod: 0.2,
+        ),
+        const MatchedProductPriceComparison(
+          productId: '5',
+          productName: 'E',
+          previousNormalizedRate: 100,
+          currentNormalizedRate: 110,
+          weightShareInPreviousPeriod: 0.2,
+        ),
       ];
 
       final res = PersonalInflationEngine.calculate(

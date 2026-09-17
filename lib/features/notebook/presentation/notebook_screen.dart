@@ -6,6 +6,9 @@ import '../../../app/theme/qoffa_colors.dart';
 import '../../../app/theme/qoffa_tokens.dart';
 import '../../../core/widgets/mint_background_scaffold.dart';
 import '../../../core/widgets/qoffa_button.dart';
+import '../../../core/widgets/qoffa_dropdown.dart';
+import '../../../core/widgets/qoffa_layout.dart';
+import '../../../core/widgets/qoffa_motion.dart';
 import '../../../core/widgets/top_toast_notification.dart';
 import '../data/notebook_repository.dart';
 
@@ -18,104 +21,166 @@ class NotebookScreen extends ConsumerStatefulWidget {
 
 class _NotebookScreenState extends ConsumerState<NotebookScreen> {
   String _selectedFilter = 'all';
+  final _searchController = TextEditingController();
 
-  void _showNewNoteDialog() {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _showNewNoteSheet() async {
+    final l10n = AppLocalizations.of(context);
     final titleController = TextEditingController();
     final bodyController = TextEditingController();
     var noteType = 'food_diary';
 
-    showDialog(
+    await showModalBottomSheet<void>(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(QoffaTokens.radiusMajor),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 22),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(QoffaTokens.radiusMajor),
               ),
-              title: const Text(
-                'New Food Note',
-                style: TextStyle(
-                  fontFamily: 'Hero Sandwich Pro',
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: QoffaColors.primaryNavy,
-                ),
-              ),
-              content: SingleChildScrollView(
+            ),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Center(
+                      child: Container(
+                        width: 42,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: QoffaColors.softBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      l10n.newNote,
+                      style: const TextStyle(
+                        fontFamily: 'Hero Sandwich Pro',
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: QoffaColors.primaryNavy,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Title',
-                        border: OutlineInputBorder(),
+                      autofocus: true,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        labelText: l10n.noteTitlePlaceholder,
+                        prefixIcon: const Icon(Icons.title_rounded),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: noteType,
-                      decoration: const InputDecoration(
-                        labelText: 'Note Type',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'food_diary', child: Text('Food Diary')),
-                        DropdownMenuItem(value: 'shopping_note', child: Text('Shopping Note')),
-                        DropdownMenuItem(value: 'price_observation', child: Text('Price Observation')),
-                        DropdownMenuItem(value: 'product_review', child: Text('Product Review')),
-                        DropdownMenuItem(value: 'meal_idea', child: Text('Meal Idea')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setDialogState(() => noteType = val);
+                    QoffaDropdown<String>(
+                      value: noteType,
+                      label: l10n.noteType,
+                      prefixIcon: Icons.category_outlined,
+                      items:
+                          const [
+                                'food_diary',
+                                'shopping_note',
+                                'price_observation',
+                                'product_review',
+                                'meal_idea',
+                              ]
+                              .map(
+                                (type) => DropdownMenuItem(
+                                  value: type,
+                                  child: Text(l10n.noteTypeLabel(type)),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setSheetState(() => noteType = value);
+                        }
                       },
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: bodyController,
-                      maxLines: 4,
-                      decoration: const InputDecoration(
-                        labelText: 'Body / Observations',
-                        border: OutlineInputBorder(),
+                      minLines: 5,
+                      maxLines: 9,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        labelText: l10n.noteBodyPlaceholder,
+                        alignLabelWithHint: true,
                       ),
+                    ),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: QoffaButton(
+                            label: l10n.cancel,
+                            variant: QoffaButtonVariant.white,
+                            onTap: () => Navigator.pop(sheetContext),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: QoffaButton(
+                            label: l10n.saveNote,
+                            icon: Icons.check_rounded,
+                            onTap: () async {
+                              final title = titleController.text.trim();
+                              if (title.isEmpty) {
+                                return;
+                              }
+                              await ref
+                                  .read(notebookRepositoryProvider)
+                                  .createNote(
+                                    title: title,
+                                    body: bodyController.text.trim(),
+                                    noteType: noteType,
+                                    eventAt: DateTime.now(),
+                                  );
+                              if (sheetContext.mounted) {
+                                Navigator.pop(sheetContext);
+                              }
+                              QoffaToast.show(
+                                title: l10n.noteSaved,
+                                message: title,
+                                icon: Icons.note_alt_outlined,
+                                color: QoffaColors.noteYellowDeep,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                QoffaButton(
-                  label: 'Save Note',
-                  width: 140,
-                  height: 48,
-                  onTap: () async {
-                    if (titleController.text.trim().isEmpty) return;
-                    final repo = ref.read(notebookRepositoryProvider);
-                    await repo.createNote(
-                      title: titleController.text.trim(),
-                      body: bodyController.text.trim(),
-                      noteType: noteType,
-                      eventAt: DateTime.now(),
-                    );
-                    if (context.mounted) Navigator.pop(context);
-                    QoffaToast.show(
-                      title: 'Note saved',
-                      message: titleController.text.trim(),
-                      icon: Icons.note_alt_outlined,
-                      color: QoffaColors.noteYellow,
-                    );
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      },
+            ),
+          ),
+        ),
+      ),
     );
+    titleController.dispose();
+    bodyController.dispose();
   }
 
   @override
@@ -127,166 +192,264 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
     return MintBackgroundScaffold(
       child: SafeArea(
         bottom: false,
-        child: Column(
+        child: QoffaContentWidth(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+                child: QoffaReveal(
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.notebookTitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Hero Sandwich Pro',
+                            fontSize: 31,
+                            height: 1.05,
+                            fontWeight: FontWeight.w900,
+                            color: QoffaColors.primaryNavy,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Semantics(
+                        button: true,
+                        label: l10n.newNote,
+                        child: IconButton.filled(
+                          onPressed: _showNewNoteSheet,
+                          style: IconButton.styleFrom(
+                            backgroundColor: QoffaColors.actionGreen,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(50, 50),
+                          ),
+                          icon: const Icon(Icons.add_rounded, size: 28),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: l10n.noteBodyPlaceholder,
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: _searchController.text.isEmpty
+                        ? null
+                        : IconButton(
+                            onPressed: () => setState(_searchController.clear),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                  ),
+                ),
+              ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 5,
+                ),
+                child: Row(
+                  children: [
+                    _filterChip('all', l10n.allNotes),
+                    const SizedBox(width: 8),
+                    _filterChip('food_diary', l10n.noteTypeLabel('food_diary')),
+                    const SizedBox(width: 8),
+                    _filterChip(
+                      'shopping_note',
+                      l10n.noteTypeLabel('shopping_note'),
+                    ),
+                    const SizedBox(width: 8),
+                    _filterChip(
+                      'price_observation',
+                      l10n.noteTypeLabel('price_observation'),
+                    ),
+                    const SizedBox(width: 8),
+                    _filterChip('meal_idea', l10n.noteTypeLabel('meal_idea')),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              Expanded(
+                child: notesAsync.when(
+                  data: (notes) {
+                    final query = _searchController.text.trim().toLowerCase();
+                    final filtered = notes.where((note) {
+                      final typeMatches =
+                          _selectedFilter == 'all' ||
+                          note.noteType == _selectedFilter;
+                      final searchMatches =
+                          query.isEmpty ||
+                          note.title.toLowerCase().contains(query) ||
+                          note.body.toLowerCase().contains(query);
+                      return typeMatches && searchMatches;
+                    }).toList();
+
+                    if (filtered.isEmpty) {
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
+                        children: [
+                          QoffaEmptyState(
+                            icon: Icons.menu_book_rounded,
+                            title: l10n.noNotesTitle,
+                            message: l10n.noNotesMessage,
+                            actionLabel: l10n.newNote,
+                            onAction: _showNewNoteSheet,
+                          ),
+                        ],
+                      );
+                    }
+                    return ListView.builder(
+                      key: const PageStorageKey('notebook-list'),
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) => QoffaReveal(
+                        delay: QoffaTokens.stagger * index.clamp(0, 5),
+                        child: _NoteCard(note: filtered[index]),
+                      ),
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, _) => Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: QoffaEmptyState(
+                      icon: Icons.sync_problem_rounded,
+                      title: l10n.errorTitle,
+                      message: l10n.errorMessage(error),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _filterChip(String filterKey, String label) {
+    final selected = _selectedFilter == filterKey;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => setState(() => _selectedFilter = filterKey),
+        borderRadius: BorderRadius.circular(QoffaTokens.radiusPill),
+        child: AnimatedContainer(
+          duration: QoffaTokens.motionMedium,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            color: selected
+                ? QoffaColors.actionGreen
+                : QoffaColors.whiteSurface,
+            borderRadius: BorderRadius.circular(QoffaTokens.radiusPill),
+            border: Border.all(
+              color: selected
+                  ? QoffaColors.actionGreen
+                  : QoffaColors.softBorder,
+              width: 1.4,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Alexandria',
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: selected ? Colors.white : QoffaColors.primaryNavy,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoteCard extends StatelessWidget {
+  const _NoteCard({required this.note});
+  final dynamic note;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 11),
+      child: QoffaCard(
+        radius: QoffaTokens.radiusCompact,
+        padding: const EdgeInsets.all(17),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: QoffaColors.noteYellow.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.sticky_note_2_outlined,
+                color: QoffaColors.noteYellowDeep,
+                size: 23,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    l10n.notebookTitle,
+                    note.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontFamily: 'Hero Sandwich Pro',
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
+                      fontFamily: 'Alexandria',
+                      fontSize: 16,
+                      height: 1.25,
+                      fontWeight: FontWeight.w800,
                       color: QoffaColors.primaryNavy,
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline, color: QoffaColors.actionGreen, size: 32),
-                    onPressed: _showNewNoteDialog,
+                  if (note.body.toString().isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      note.body,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Alexandria',
+                        fontSize: 13,
+                        height: 1.4,
+                        color: QoffaColors.secondarySage,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      _NoteMeta(
+                        text: l10n.noteTypeLabel(note.noteType),
+                        color: QoffaColors.actionGreen,
+                      ),
+                      _NoteMeta(
+                        text: DateFormat.yMMMd(
+                          l10n.languageCode,
+                        ).format(note.eventAt),
+                        color: QoffaColors.secondarySage,
+                      ),
+                    ],
                   ),
                 ],
-              ),
-            ),
-
-            // Note Type Filter Chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-              child: Row(
-                children: [
-                  _filterChip('all', 'All Notes'),
-                  const SizedBox(width: 8),
-                  _filterChip('food_diary', 'Food Diary'),
-                  const SizedBox(width: 8),
-                  _filterChip('shopping_note', 'Shopping Notes'),
-                  const SizedBox(width: 8),
-                  _filterChip('price_observation', 'Price Observations'),
-                  const SizedBox(width: 8),
-                  _filterChip('meal_idea', 'Meal Ideas'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Notes List
-            Expanded(
-              child: notesAsync.when(
-                data: (notes) {
-                  final filtered = _selectedFilter == 'all'
-                      ? notes
-                      : notes.where((n) => n.noteType == _selectedFilter).toList();
-
-                  if (filtered.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.note_alt_outlined, size: 64, color: QoffaColors.secondarySage),
-                          const SizedBox(height: 14),
-                          const Text(
-                            'No notes yet. Tap + to record a note.',
-                            style: TextStyle(
-                              fontFamily: 'Alexandria',
-                              fontSize: 15,
-                              color: QoffaColors.secondarySage,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          QoffaButton(
-                            label: l10n.newNote,
-                            icon: Icons.add,
-                            width: 180,
-                            onTap: _showNewNoteDialog,
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final n = filtered[index];
-                      final dateStr = DateFormat.yMMMd().format(n.eventAt);
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(18),
-                        decoration: BoxDecoration(
-                          color: QoffaColors.whiteSurface,
-                          borderRadius: BorderRadius.circular(QoffaTokens.radiusCompact),
-                          border: Border.all(color: QoffaColors.softBorder, width: 1.2),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    n.title,
-                                    style: const TextStyle(
-                                      fontFamily: 'Alexandria',
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w800,
-                                      color: QoffaColors.primaryNavy,
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: QoffaColors.mintSurfaceTint,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    n.noteType.replaceAll('_', ' '),
-                                    style: const TextStyle(
-                                      fontFamily: 'Alexandria',
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: QoffaColors.actionGreen,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              n.body,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontFamily: 'Alexandria',
-                                fontSize: 14,
-                                color: QoffaColors.secondarySage,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              dateStr,
-                              style: const TextStyle(
-                                fontFamily: 'Hero Sandwich Pro',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: QoffaColors.secondarySage,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Center(child: Text('Error: $err')),
               ),
             ),
           ],
@@ -294,31 +457,28 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
       ),
     );
   }
+}
 
-  Widget _filterChip(String filterKey, String label) {
-    final isSelected = _selectedFilter == filterKey;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedFilter = filterKey),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? QoffaColors.actionGreen : QoffaColors.whiteSurface,
-          borderRadius: BorderRadius.circular(QoffaTokens.radiusPill),
-          border: Border.all(
-            color: isSelected ? QoffaColors.actionGreen : QoffaColors.softBorder,
-            width: 1.5,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Alexandria',
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-            color: isSelected ? QoffaColors.whiteSurface : QoffaColors.primaryNavy,
-          ),
-        ),
+class _NoteMeta extends StatelessWidget {
+  const _NoteMeta({required this.text, required this.color});
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(7),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontFamily: 'Alexandria',
+        fontSize: 10.5,
+        fontWeight: FontWeight.w700,
+        color: color,
       ),
-    );
-  }
+    ),
+  );
 }

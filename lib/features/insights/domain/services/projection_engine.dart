@@ -70,7 +70,8 @@ class ProjectionEngine {
     // Expected spend by today if evenly pacing budget
     final expectedSpendByToday = budget.dinars * elapsedFraction;
     final paceVsBudget = expectedSpendByToday > 0
-        ? ((spentSoFar.dinars - expectedSpendByToday) / expectedSpendByToday) * 100
+        ? ((spentSoFar.dinars - expectedSpendByToday) / expectedSpendByToday) *
+              100
         : 0.0;
 
     final isOverBudgetRisk = projectedDinars > budget.dinars;

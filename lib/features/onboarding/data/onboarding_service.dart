@@ -24,7 +24,9 @@ class OnboardingService {
   Future<void> setCompleted() async {
     try {
       final file = await _getFile();
-      await file.writeAsString(jsonEncode({'completed': true, 'at': DateTime.now().toIso8601String()}));
+      await file.writeAsString(
+        jsonEncode({'completed': true, 'at': DateTime.now().toIso8601String()}),
+      );
     } catch (_) {}
   }
 }

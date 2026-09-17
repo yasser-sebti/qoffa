@@ -61,7 +61,9 @@ class TypicalPriceEngine {
       final lowerFence = q1Val - (1.5 * iqrVal).round();
       final upperFence = q3Val + (1.5 * iqrVal).round();
 
-      final filtered = sorted.where((p) => p >= lowerFence && p <= upperFence).toList();
+      final filtered = sorted
+          .where((p) => p >= lowerFence && p <= upperFence)
+          .toList();
       if (filtered.length >= 3) {
         effective = filtered;
       }

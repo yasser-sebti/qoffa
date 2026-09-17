@@ -23,22 +23,25 @@ void main() {
       expect((a * 3).dinars, 1050);
     });
 
-    test('computes decimal quantity pricing with standard half-up rounding', () {
-      // 1.5 kg of apples at 230 DZD/kg = 345 DZD
-      final pricePerUnit = DzdAmount(230);
-      final total = DzdAmount.fromUnitAndQuantity(
-        unitPrice: pricePerUnit,
-        quantity: Decimal.parse('1.5'),
-      );
-      expect(total.dinars, 345);
+    test(
+      'computes decimal quantity pricing with standard half-up rounding',
+      () {
+        // 1.5 kg of apples at 230 DZD/kg = 345 DZD
+        final pricePerUnit = DzdAmount(230);
+        final total = DzdAmount.fromUnitAndQuantity(
+          unitPrice: pricePerUnit,
+          quantity: Decimal.parse('1.5'),
+        );
+        expect(total.dinars, 345);
 
-      // 0.333 kg at 100 DZD/kg = 33.3 -> rounds to 33 DZD
-      final total2 = DzdAmount.fromUnitAndQuantity(
-        unitPrice: DzdAmount(100),
-        quantity: Decimal.parse('0.333'),
-      );
-      expect(total2.dinars, 33);
-    });
+        // 0.333 kg at 100 DZD/kg = 33.3 -> rounds to 33 DZD
+        final total2 = DzdAmount.fromUnitAndQuantity(
+          unitPrice: DzdAmount(100),
+          quantity: Decimal.parse('0.333'),
+        );
+        expect(total2.dinars, 33);
+      },
+    );
 
     test('computes price difference correctly', () {
       final oldPrice = DzdAmount(100);

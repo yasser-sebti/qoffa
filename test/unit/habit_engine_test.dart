@@ -5,10 +5,7 @@ void main() {
   group('HabitEngine (Restock Interval & Due Date Detection)', () {
     test('returns null when less than 3 purchase events exist', () {
       final habit = HabitEngine.detect(
-        purchaseDates: [
-          DateTime(2026, 9, 1),
-          DateTime(2026, 9, 8),
-        ],
+        purchaseDates: [DateTime(2026, 9, 1), DateTime(2026, 9, 8)],
         today: DateTime(2026, 9, 15),
       );
       expect(habit, isNull);

@@ -35,21 +35,24 @@ void main() {
       expect(converted, Decimal.parse('0.5'));
     });
 
-    test('converts volume correctly (centiliters and milliliters to liters)', () {
-      final fromCl = UnitRegistry.convert(
-        value: Decimal.fromInt(33),
-        fromUnit: UnitRegistry.centiliter,
-        toUnit: UnitRegistry.liter,
-      );
-      expect(fromCl, Decimal.parse('0.33'));
+    test(
+      'converts volume correctly (centiliters and milliliters to liters)',
+      () {
+        final fromCl = UnitRegistry.convert(
+          value: Decimal.fromInt(33),
+          fromUnit: UnitRegistry.centiliter,
+          toUnit: UnitRegistry.liter,
+        );
+        expect(fromCl, Decimal.parse('0.33'));
 
-      final fromMl = UnitRegistry.convert(
-        value: Decimal.fromInt(250),
-        fromUnit: UnitRegistry.milliliter,
-        toUnit: UnitRegistry.liter,
-      );
-      expect(fromMl, Decimal.parse('0.25'));
-    });
+        final fromMl = UnitRegistry.convert(
+          value: Decimal.fromInt(250),
+          fromUnit: UnitRegistry.milliliter,
+          toUnit: UnitRegistry.liter,
+        );
+        expect(fromMl, Decimal.parse('0.25'));
+      },
+    );
 
     test('converts count correctly (dozen to pieces)', () {
       final pieces = UnitRegistry.convert(

@@ -16,9 +16,5 @@ void main() async {
     ),
   );
 
-  runApp(
-    const ProviderScope(
-      child: QoffaApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: QoffaApp()));
 }

@@ -4,10 +4,10 @@ import '../../app/theme/qoffa_tokens.dart';
 import 'raised_pressable.dart';
 
 enum QoffaButtonVariant {
-  primary,   // Solid green face, white text
+  primary, // Solid green face, white text
   secondary, // Outline or muted face
-  coral,     // Coral face for Later Buy / Danger
-  white,     // White face with colored text and shadow
+  coral, // Coral face for Later Buy / Danger
+  white, // White face with colored text and shadow
 }
 
 class QoffaButton extends StatelessWidget {
@@ -70,7 +70,7 @@ class QoffaButton extends StatelessWidget {
 
     if (!enabled) {
       faceColor = faceColor.withValues(alpha: 0.5);
-      shadowColor = shadowColor.withValues(alpha: 0.3);
+      shadowColor = shadowColor.withValues(alpha: 0.45);
     }
 
     final radius = BorderRadius.circular(QoffaTokens.radiusCompact);
@@ -78,7 +78,7 @@ class QoffaButton extends StatelessWidget {
     return RaisedPressable(
       onTap: enabled && !isLoading ? onTap : () {},
       enabled: enabled && !isLoading,
-      width: width,
+      width: width ?? double.infinity,
       height: height,
       radius: radius,
       shadowOffset: shadowOffset,

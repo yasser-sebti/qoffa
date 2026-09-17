@@ -51,9 +51,9 @@ class DriftProductRepository implements ProductRepository {
           .get();
     }
 
-    final all = await (_db.select(_db.products)
-          ..where((t) => t.deletedAt.isNull()))
-        .get();
+    final all = await (_db.select(
+      _db.products,
+    )..where((t) => t.deletedAt.isNull())).get();
 
     final aliases = await (_db.select(_db.productAliases)).get();
     final aliasMap = <String, List<String>>{};
@@ -66,7 +66,10 @@ class DriftProductRepository implements ProductRepository {
     for (final p in all) {
       var score = SearchNormalizer.matchScore(query: clean, target: p.name);
       if (p.brand != null) {
-        final bScore = SearchNormalizer.matchScore(query: clean, target: p.brand!);
+        final bScore = SearchNormalizer.matchScore(
+          query: clean,
+          target: p.brand!,
+        );
         if (bScore > score) score = bScore;
       }
       final productAliases = aliasMap[p.id] ?? [];
@@ -86,7 +89,9 @@ class DriftProductRepository implements ProductRepository {
 
   @override
   Future<Product?> getProductById(String id) {
-    return (_db.select(_db.products)..where((t) => t.id.equals(id))).getSingleOrNull();
+    return (_db.select(
+      _db.products,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
   @override
@@ -134,7 +139,9 @@ class DriftProductRepository implements ProductRepository {
     // Insert aliases
     for (final alias in aliases) {
       if (alias.trim().isNotEmpty) {
-        await _db.into(_db.productAliases).insert(
+        await _db
+            .into(_db.productAliases)
+            .insert(
               ProductAliasesCompanion.insert(
                 id: _uuid.v4(),
                 productId: id,
@@ -150,19 +157,20 @@ class DriftProductRepository implements ProductRepository {
 
   @override
   Future<void> updateProduct(Product product) async {
-    await (_db.update(_db.products)..where((t) => t.id.equals(product.id)))
-        .write(product.copyWith(
-      normalizedName: SearchNormalizer.normalize(product.name),
-      updatedAt: DateTime.now().toUtc(),
-    ));
+    await (_db.update(
+      _db.products,
+    )..where((t) => t.id.equals(product.id))).write(
+      product.copyWith(
+        normalizedName: SearchNormalizer.normalize(product.name),
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
   }
 
   @override
   Future<void> softDeleteProduct(String id) async {
     await (_db.update(_db.products)..where((t) => t.id.equals(id))).write(
-      ProductsCompanion(
-        deletedAt: Value(DateTime.now().toUtc()),
-      ),
+      ProductsCompanion(deletedAt: Value(DateTime.now().toUtc())),
     );
   }
 

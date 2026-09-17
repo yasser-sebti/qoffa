@@ -44,9 +44,9 @@ class DriftNotebookRepository implements NotebookRepository {
 
   @override
   Future<List<Note>> getNotesForProduct(String productId) async {
-    final links = await (_db.select(_db.noteProductLinks)
-          ..where((t) => t.productId.equals(productId)))
-        .get();
+    final links = await (_db.select(
+      _db.noteProductLinks,
+    )..where((t) => t.productId.equals(productId))).get();
     if (links.isEmpty) return [];
 
     final noteIds = links.map((l) => l.noteId).toList();
@@ -67,7 +67,8 @@ class DriftNotebookRepository implements NotebookRepository {
   }) async {
     final now = DateTime.now().toUtc();
     final id = _uuid.v4();
-    final localDate = '${eventAt.year.toString().padLeft(4, '0')}-${eventAt.month.toString().padLeft(2, '0')}-${eventAt.day.toString().padLeft(2, '0')}';
+    final localDate =
+        '${eventAt.year.toString().padLeft(4, '0')}-${eventAt.month.toString().padLeft(2, '0')}-${eventAt.day.toString().padLeft(2, '0')}';
 
     final companion = NotesCompanion.insert(
       id: id,
@@ -84,19 +85,28 @@ class DriftNotebookRepository implements NotebookRepository {
       await _db.into(_db.notes).insert(companion);
 
       for (final pId in linkedProductIds) {
-        await _db.into(_db.noteProductLinks).insert(
+        await _db
+            .into(_db.noteProductLinks)
+            .insert(
               NoteProductLinksCompanion.insert(noteId: id, productId: pId),
             );
       }
 
       for (final purchId in linkedPurchaseIds) {
-        await _db.into(_db.notePurchaseLinks).insert(
-              NotePurchaseLinksCompanion.insert(noteId: id, purchaseId: purchId),
+        await _db
+            .into(_db.notePurchaseLinks)
+            .insert(
+              NotePurchaseLinksCompanion.insert(
+                noteId: id,
+                purchaseId: purchId,
+              ),
             );
       }
     });
 
-    return (await (_db.select(_db.notes)..where((t) => t.id.equals(id))).getSingle());
+    return (await (_db.select(
+      _db.notes,
+    )..where((t) => t.id.equals(id))).getSingle());
   }
 
   @override

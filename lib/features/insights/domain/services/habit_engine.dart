@@ -33,8 +33,9 @@ class HabitEngine {
     if (purchaseDates.length < 3) return null;
 
     // Sort chronologically ascending
-    final sorted = purchaseDates.map((d) => DateTime(d.year, d.month, d.day)).toList()
-      ..sort((a, b) => a.compareTo(b));
+    final sorted =
+        purchaseDates.map((d) => DateTime(d.year, d.month, d.day)).toList()
+          ..sort((a, b) => a.compareTo(b));
 
     // Calculate gap intervals in days
     final gaps = <int>[];
@@ -53,7 +54,8 @@ class HabitEngine {
     if (medianInterval <= 0) return null;
 
     // Compute Median Absolute Deviation (MAD)
-    final deviations = gaps.map((g) => (g - medianInterval).abs()).toList()..sort();
+    final deviations = gaps.map((g) => (g - medianInterval).abs()).toList()
+      ..sort();
     final mad = deviations[deviations.length ~/ 2];
 
     final lastDate = sorted.last;

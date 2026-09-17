@@ -44,10 +44,22 @@ void main() {
 
     test('scores exact and prefix matches higher', () {
       expect(SearchNormalizer.matchScore(query: 'lait', target: 'lait'), 100);
-      expect(SearchNormalizer.matchScore(query: 'lait', target: 'lait candia'), 75);
-      expect(SearchNormalizer.matchScore(query: 'candia', target: 'lait candia'), 50);
-      expect(SearchNormalizer.matchScore(query: 'and', target: 'lait candia'), 25);
-      expect(SearchNormalizer.matchScore(query: 'yaourt', target: 'lait candia'), -1);
+      expect(
+        SearchNormalizer.matchScore(query: 'lait', target: 'lait candia'),
+        75,
+      );
+      expect(
+        SearchNormalizer.matchScore(query: 'candia', target: 'lait candia'),
+        50,
+      );
+      expect(
+        SearchNormalizer.matchScore(query: 'and', target: 'lait candia'),
+        25,
+      );
+      expect(
+        SearchNormalizer.matchScore(query: 'yaourt', target: 'lait candia'),
+        -1,
+      );
     });
   });
 }

@@ -97,8 +97,8 @@ class PriceChangeBadge extends StatelessWidget {
     final bgColor = isIncrease
         ? QoffaColors.warningCoral
         : isDecrease
-            ? QoffaColors.brandGreen
-            : QoffaColors.softBorder;
+        ? QoffaColors.brandGreen
+        : QoffaColors.softBorder;
 
     final textColor = (isIncrease || isDecrease)
         ? QoffaColors.whiteSurface
@@ -120,8 +120,8 @@ class PriceChangeBadge extends StatelessWidget {
             isIncrease
                 ? Icons.arrow_outward_rounded
                 : isDecrease
-                    ? Icons.arrow_downward_rounded
-                    : Icons.remove_rounded,
+                ? Icons.arrow_downward_rounded
+                : Icons.remove_rounded,
             color: textColor,
             size: fontSize * 1.1,
           ),

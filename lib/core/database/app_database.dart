@@ -5,23 +5,25 @@ import 'tables.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [
-  Profiles,
-  Categories,
-  Stores,
-  Products,
-  ProductAliases,
-  ProductConversions,
-  Purchases,
-  LaterBuyItems,
-  Notes,
-  NoteTags,
-  NoteProductLinks,
-  NotePurchaseLinks,
-  ShoppingLists,
-  ShoppingListItems,
-  Reminders,
-])
+@DriftDatabase(
+  tables: [
+    Profiles,
+    Categories,
+    Stores,
+    Products,
+    ProductAliases,
+    ProductConversions,
+    Purchases,
+    LaterBuyItems,
+    Notes,
+    NoteTags,
+    NoteProductLinks,
+    NotePurchaseLinks,
+    ShoppingLists,
+    ShoppingListItems,
+    Reminders,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? _openConnection());
 

@@ -18,7 +18,7 @@ abstract class ShoppingListRepository {
   });
   Future<void> toggleItemCompleted(String itemId, bool isCompleted);
   Future<void> deleteItem(String itemId);
-  Future<ShoppingList> getOrCreateDefaultList();
+  Future<ShoppingList> getOrCreateDefaultList({String title = 'Shopping list'});
 }
 
 class DriftShoppingListRepository implements ShoppingListRepository {
@@ -37,9 +37,9 @@ class DriftShoppingListRepository implements ShoppingListRepository {
 
   @override
   Stream<List<ShoppingListItem>> watchListItems(String listId) {
-    return (_db.select(_db.shoppingListItems)
-          ..where((t) => t.listId.equals(listId)))
-        .watch();
+    return (_db.select(
+      _db.shoppingListItems,
+    )..where((t) => t.listId.equals(listId))).watch();
   }
 
   @override
@@ -52,7 +52,9 @@ class DriftShoppingListRepository implements ShoppingListRepository {
       updatedAt: now,
     );
     await _db.into(_db.shoppingLists).insert(entry);
-    return (_db.select(_db.shoppingLists)..where((t) => t.id.equals(entry.id.value))).getSingle();
+    return (_db.select(
+      _db.shoppingLists,
+    )..where((t) => t.id.equals(entry.id.value))).getSingle();
   }
 
   @override
@@ -75,33 +77,41 @@ class DriftShoppingListRepository implements ShoppingListRepository {
     );
     await _db.into(_db.shoppingListItems).insert(entry);
     // Touch list updatedAt
-    await (_db.update(_db.shoppingLists)..where((t) => t.id.equals(listId))).write(
+    await (_db.update(
+      _db.shoppingLists,
+    )..where((t) => t.id.equals(listId))).write(
       ShoppingListsCompanion(updatedAt: Value(DateTime.now().toUtc())),
     );
-    return (_db.select(_db.shoppingListItems)..where((t) => t.id.equals(entry.id.value))).getSingle();
+    return (_db.select(
+      _db.shoppingListItems,
+    )..where((t) => t.id.equals(entry.id.value))).getSingle();
   }
 
   @override
   Future<void> toggleItemCompleted(String itemId, bool isCompleted) async {
-    await (_db.update(_db.shoppingListItems)..where((t) => t.id.equals(itemId))).write(
-      ShoppingListItemsCompanion(isCompleted: Value(isCompleted)),
-    );
+    await (_db.update(_db.shoppingListItems)..where((t) => t.id.equals(itemId)))
+        .write(ShoppingListItemsCompanion(isCompleted: Value(isCompleted)));
   }
 
   @override
   Future<void> deleteItem(String itemId) async {
-    await (_db.delete(_db.shoppingListItems)..where((t) => t.id.equals(itemId))).go();
+    await (_db.delete(
+      _db.shoppingListItems,
+    )..where((t) => t.id.equals(itemId))).go();
   }
 
   @override
-  Future<ShoppingList> getOrCreateDefaultList() async {
-    final existing = await (_db.select(_db.shoppingLists)
-          ..where((t) => t.deletedAt.isNull() & t.isArchived.equals(false))
-          ..limit(1))
-        .getSingleOrNull();
+  Future<ShoppingList> getOrCreateDefaultList({
+    String title = 'Shopping list',
+  }) async {
+    final existing =
+        await (_db.select(_db.shoppingLists)
+              ..where((t) => t.deletedAt.isNull() & t.isArchived.equals(false))
+              ..limit(1))
+            .getSingleOrNull();
 
     if (existing != null) return existing;
-    return createList(title: 'قائمة التسوق الأسبوعية');
+    return createList(title: title);
   }
 }
 

@@ -15,7 +15,9 @@ class MatchedProductPriceComparison {
 
   double get percentageChange {
     if (previousNormalizedRate <= 0) return 0.0;
-    return ((currentNormalizedRate - previousNormalizedRate) / previousNormalizedRate) * 100;
+    return ((currentNormalizedRate - previousNormalizedRate) /
+            previousNormalizedRate) *
+        100;
   }
 }
 
@@ -68,7 +70,9 @@ class PersonalInflationEngine {
       }
     }
 
-    final inflationRate = totalWeights > 0 ? (totalWeightedChange / totalWeights) : 0.0;
+    final inflationRate = totalWeights > 0
+        ? (totalWeightedChange / totalWeights)
+        : 0.0;
 
     return PersonalInflationResult(
       inflationRatePercentage: inflationRate,

@@ -6,18 +6,22 @@ import '../../../app/theme/qoffa_colors.dart';
 import '../../../app/theme/qoffa_tokens.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/widgets/mint_background_scaffold.dart';
-import '../../../core/widgets/qoffa_button.dart';
+import '../../../core/widgets/qoffa_layout.dart';
+import '../../../core/widgets/qoffa_motion.dart';
+import '../../../core/widgets/qoffa_dropdown.dart';
 import '../data/shopping_list_repository.dart';
 
 class ShoppingListsScreen extends ConsumerStatefulWidget {
   const ShoppingListsScreen({super.key});
 
   @override
-  ConsumerState<ShoppingListsScreen> createState() => _ShoppingListsScreenState();
+  ConsumerState<ShoppingListsScreen> createState() =>
+      _ShoppingListsScreenState();
 }
 
 class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
   final _addItemController = TextEditingController();
+  String? _selectedListId;
 
   @override
   void dispose() {
@@ -26,21 +30,35 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
   }
 
   void _showNewListDialog(BuildContext context, ShoppingListRepository repo) {
+    final l10n = AppLocalizations.of(context);
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(QoffaTokens.radiusMajor)),
-        title: const Text('قائمة تسوق جديدة', style: TextStyle(fontFamily: 'Hero Sandwich Pro', fontWeight: FontWeight.w800)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(QoffaTokens.radiusMajor),
+        ),
+        title: Text(
+          l10n.newList,
+          style: const TextStyle(
+            fontFamily: 'Hero Sandwich Pro',
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'اسم القائمة...'),
+          decoration: InputDecoration(hintText: l10n.listName),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(l10n.cancel),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: QoffaColors.brandGreen),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: QoffaColors.brandGreen,
+            ),
             onPressed: () async {
               final title = controller.text.trim();
               if (title.isNotEmpty) {
@@ -48,7 +66,13 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
                 if (ctx.mounted) Navigator.pop(ctx);
               }
             },
-            child: const Text('إنشاء', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: Text(
+              l10n.create,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -59,75 +83,126 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final repo = ref.watch(shoppingListRepositoryProvider);
-    final listsAsync = ref.watch(StreamProvider((ref) => repo.watchActiveLists()));
+    final listsAsync = ref.watch(
+      StreamProvider((ref) => repo.watchActiveLists()),
+    );
 
     return MintBackgroundScaffold(
       child: SafeArea(
-        child: Column(
-          children: [
-            // Top Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: QoffaColors.primaryNavy),
-                    onPressed: () => context.pop(),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      l10n.shoppingListsTitle,
-                      style: const TextStyle(
-                        fontFamily: 'Hero Sandwich Pro',
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
+        child: QoffaContentWidth(
+          child: Column(
+            children: [
+              // Top Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
                         color: QoffaColors.primaryNavy,
                       ),
+                      onPressed: () => context.pop(),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.playlist_add_rounded, color: QoffaColors.actionGreen, size: 28),
-                    onPressed: () => _showNewListDialog(context, repo),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.shoppingListsTitle,
+                        style: const TextStyle(
+                          fontFamily: 'Hero Sandwich Pro',
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                          color: QoffaColors.primaryNavy,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.playlist_add_rounded,
+                        color: QoffaColors.actionGreen,
+                        size: 28,
+                      ),
+                      onPressed: () => _showNewListDialog(context, repo),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            Expanded(
-              child: listsAsync.when(
-                data: (lists) {
-                  if (lists.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
+              Expanded(
+                child: listsAsync.when(
+                  data: (lists) {
+                    if (lists.isEmpty) {
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
                         children: [
-                          const Icon(Icons.list_alt_rounded, size: 64, color: QoffaColors.secondarySage),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'لا توجد أي قوائم تسوق حالياً',
-                            style: TextStyle(fontFamily: 'Alexandria', fontSize: 16, fontWeight: FontWeight.bold, color: QoffaColors.primaryNavy),
-                          ),
-                          const SizedBox(height: 16),
-                          QoffaButton(
-                            label: 'إنشاء أول قائمة',
-                            onTap: () async {
-                              await repo.getOrCreateDefaultList();
-                            },
+                          QoffaReveal(
+                            child: QoffaEmptyState(
+                              icon: Icons.list_alt_rounded,
+                              title: l10n.noShoppingLists,
+                              message: l10n.noShoppingListsMessage,
+                              actionLabel: l10n.createFirstList,
+                              onAction: () => repo.getOrCreateDefaultList(
+                                title: l10n.defaultShoppingList,
+                              ),
+                            ),
                           ),
                         ],
-                      ),
-                    );
-                  }
+                      );
+                    }
 
-                  final currentList = lists.first;
-                  return _ShoppingListContentView(list: currentList, repo: repo);
-                },
-                loading: () => const Center(child: CircularProgressIndicator(color: QoffaColors.brandGreen)),
-                error: (e, _) => Center(child: Text('Error: $e')),
+                    final currentList = lists.firstWhere(
+                      (list) => list.id == _selectedListId,
+                      orElse: () => lists.first,
+                    );
+                    return Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 6, 20, 4),
+                          child: QoffaDropdown<String>(
+                            value: currentList.id,
+                            prefixIcon: Icons.list_alt_rounded,
+                            items: lists
+                                .map(
+                                  (list) => DropdownMenuItem(
+                                    value: list.id,
+                                    child: Text(
+                                      list.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (listId) {
+                              if (listId != null) {
+                                setState(() => _selectedListId = listId);
+                              }
+                            },
+                          ),
+                        ),
+                        Expanded(
+                          child: _ShoppingListContentView(
+                            key: ValueKey(currentList.id),
+                            list: currentList,
+                            repo: repo,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(
+                      color: QoffaColors.brandGreen,
+                    ),
+                  ),
+                  error: (e, _) => Center(child: Text(l10n.errorMessage(e))),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -135,15 +210,21 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
 }
 
 class _ShoppingListContentView extends ConsumerStatefulWidget {
-  const _ShoppingListContentView({required this.list, required this.repo});
+  const _ShoppingListContentView({
+    required this.list,
+    required this.repo,
+    super.key,
+  });
   final ShoppingList list;
   final ShoppingListRepository repo;
 
   @override
-  ConsumerState<_ShoppingListContentView> createState() => _ShoppingListContentViewState();
+  ConsumerState<_ShoppingListContentView> createState() =>
+      _ShoppingListContentViewState();
 }
 
-class _ShoppingListContentViewState extends ConsumerState<_ShoppingListContentView> {
+class _ShoppingListContentViewState
+    extends ConsumerState<_ShoppingListContentView> {
   final _textController = TextEditingController();
 
   @override
@@ -166,7 +247,10 @@ class _ShoppingListContentViewState extends ConsumerState<_ShoppingListContentVi
 
   @override
   Widget build(BuildContext context) {
-    final itemsAsync = ref.watch(StreamProvider((ref) => widget.repo.watchListItems(widget.list.id)));
+    final l10n = AppLocalizations.of(context);
+    final itemsAsync = ref.watch(
+      StreamProvider((ref) => widget.repo.watchListItems(widget.list.id)),
+    );
 
     return Column(
       children: [
@@ -181,14 +265,23 @@ class _ShoppingListContentViewState extends ConsumerState<_ShoppingListContentVi
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(QoffaTokens.radiusControls),
-                    border: Border.all(color: QoffaColors.softBorder, width: 1.5),
+                    borderRadius: BorderRadius.circular(
+                      QoffaTokens.radiusControls,
+                    ),
+                    border: Border.all(
+                      color: QoffaColors.softBorder,
+                      width: 1.5,
+                    ),
                   ),
                   child: TextField(
                     controller: _textController,
-                    decoration: const InputDecoration(
-                      hintText: 'أضف منتجاً للقائمة (مثلاً: حليب، بيض)...',
-                      hintStyle: TextStyle(fontFamily: 'Alexandria', fontSize: 13, color: QoffaColors.secondarySage),
+                    decoration: InputDecoration(
+                      hintText: l10n.addListItemHint,
+                      hintStyle: const TextStyle(
+                        fontFamily: 'Alexandria',
+                        fontSize: 13,
+                        color: QoffaColors.secondarySage,
+                      ),
                       border: InputBorder.none,
                     ),
                     onSubmitted: (_) => _addItem(),
@@ -206,7 +299,11 @@ class _ShoppingListContentViewState extends ConsumerState<_ShoppingListContentVi
                     color: QoffaColors.brandGreen,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ),
               ),
             ],
@@ -219,25 +316,39 @@ class _ShoppingListContentViewState extends ConsumerState<_ShoppingListContentVi
               if (items.isEmpty) {
                 return Center(
                   child: Text(
-                    'قائمتك فارغة الآن. أضف ما تحتاجه للرحلة القادمة!',
-                    style: TextStyle(fontFamily: 'Alexandria', fontSize: 13, color: QoffaColors.primaryNavy.withValues(alpha: 0.6)),
+                    l10n.emptyShoppingList,
+                    style: TextStyle(
+                      fontFamily: 'Alexandria',
+                      fontSize: 13,
+                      color: QoffaColors.primaryNavy.withValues(alpha: 0.6),
+                    ),
                   ),
                 );
               }
 
               return ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 itemCount: items.length,
                 separatorBuilder: (context, index) => const SizedBox(height: 8),
                 itemBuilder: (context, idx) {
                   final item = items[idx];
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(QoffaTokens.radiusControls),
+                      borderRadius: BorderRadius.circular(
+                        QoffaTokens.radiusControls,
+                      ),
                       border: Border.all(
-                        color: item.isCompleted ? QoffaColors.softBorder.withValues(alpha: 0.5) : QoffaColors.softBorder,
+                        color: item.isCompleted
+                            ? QoffaColors.softBorder.withValues(alpha: 0.5)
+                            : QoffaColors.softBorder,
                         width: 1.5,
                       ),
                     ),
@@ -246,7 +357,9 @@ class _ShoppingListContentViewState extends ConsumerState<_ShoppingListContentVi
                         Checkbox(
                           value: item.isCompleted,
                           activeColor: QoffaColors.brandGreen,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                           onChanged: (val) {
                             if (val != null) {
                               widget.repo.toggleItemCompleted(item.id, val);
@@ -260,14 +373,24 @@ class _ShoppingListContentViewState extends ConsumerState<_ShoppingListContentVi
                             style: TextStyle(
                               fontFamily: 'Alexandria',
                               fontSize: 15,
-                              fontWeight: item.isCompleted ? FontWeight.w500 : FontWeight.w700,
-                              decoration: item.isCompleted ? TextDecoration.lineThrough : null,
-                              color: item.isCompleted ? QoffaColors.secondarySage : QoffaColors.primaryNavy,
+                              fontWeight: item.isCompleted
+                                  ? FontWeight.w500
+                                  : FontWeight.w700,
+                              decoration: item.isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                              color: item.isCompleted
+                                  ? QoffaColors.secondarySage
+                                  : QoffaColors.primaryNavy,
                             ),
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: QoffaColors.secondarySage, size: 20),
+                          icon: const Icon(
+                            Icons.delete_outline_rounded,
+                            color: QoffaColors.secondarySage,
+                            size: 20,
+                          ),
                           onPressed: () => widget.repo.deleteItem(item.id),
                         ),
                       ],
@@ -276,8 +399,10 @@ class _ShoppingListContentViewState extends ConsumerState<_ShoppingListContentVi
                 },
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator(color: QoffaColors.brandGreen)),
-            error: (e, _) => Center(child: Text('Error: $e')),
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: QoffaColors.brandGreen),
+            ),
+            error: (e, _) => Center(child: Text(l10n.errorMessage(e))),
           ),
         ),
       ],

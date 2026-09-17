@@ -6,14 +6,14 @@ import 'package:qoffa/core/database/app_database.dart';
 import 'package:qoffa/core/database/database_provider.dart';
 
 void main() {
-  testWidgets('QoffaApp boots up and renders home dashboard smoke test', (WidgetTester tester) async {
+  testWidgets('QoffaApp boots up and renders home dashboard smoke test', (
+    WidgetTester tester,
+  ) async {
     final inMemoryDb = AppDatabase(NativeDatabase.memory());
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [
-          databaseProvider.overrideWithValue(inMemoryDb),
-        ],
+        overrides: [databaseProvider.overrideWithValue(inMemoryDb)],
         child: const QoffaApp(),
       ),
     );

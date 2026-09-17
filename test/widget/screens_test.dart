@@ -22,9 +22,7 @@ Widget createTestableWidget({
   Locale locale = const Locale('ar'),
 }) {
   return ProviderScope(
-    overrides: [
-      databaseProvider.overrideWithValue(db),
-    ],
+    overrides: [databaseProvider.overrideWithValue(db)],
     child: MaterialApp(
       locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -52,8 +50,12 @@ void main() {
   });
 
   group('Qoffa UI Screens Widget Integration', () {
-    testWidgets('HomeScreen renders budget summary and empty state', (tester) async {
-      await tester.pumpWidget(createTestableWidget(child: const HomeScreen(), db: db));
+    testWidgets('HomeScreen renders budget summary and empty state', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(child: const HomeScreen(), db: db),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -64,40 +66,52 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     });
 
-    testWidgets('AddPurchaseScreen renders form and quick staples', (tester) async {
-      await tester.pumpWidget(createTestableWidget(child: const AddPurchaseScreen(), db: db));
+    testWidgets('AddPurchaseScreen renders form and quick staples', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(child: const AddPurchaseScreen(), db: db),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(AddPurchaseScreen), findsOneWidget);
-      expect(find.text('تسجيل شراء'), findsOneWidget);
+      expect(find.text('إضافة شراء'), findsOneWidget);
       expect(find.text('تم الشراء'), findsOneWidget);
       expect(find.text('شراء لاحقاً'), findsOneWidget);
       expect(find.text('إضافة للقائمة'), findsOneWidget);
 
-      expect(find.text('Eggs'), findsOneWidget);
-      expect(find.text('Bread'), findsOneWidget);
+      expect(find.text('بيض'), findsOneWidget);
+      expect(find.text('خبز'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 50));
     });
 
-    testWidgets('LaterBuyScreen renders status tabs and header', (tester) async {
-      await tester.pumpWidget(createTestableWidget(child: const LaterBuyScreen(), db: db));
+    testWidgets('LaterBuyScreen renders status tabs and header', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(child: const LaterBuyScreen(), db: db),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(LaterBuyScreen), findsOneWidget);
-      expect(find.textContaining('النشطة'), findsOneWidget);
+      expect(find.textContaining('نشطة'), findsOneWidget);
       expect(find.text('تم شراؤها'), findsOneWidget);
-      expect(find.text('تم التخطي'), findsOneWidget);
+      expect(find.text('متخطاة'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 50));
     });
 
-    testWidgets('CalendarScreen renders monthly header and day grid', (tester) async {
-      await tester.pumpWidget(createTestableWidget(child: const CalendarScreen(), db: db));
+    testWidgets('CalendarScreen renders monthly header and day grid', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(child: const CalendarScreen(), db: db),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -108,21 +122,29 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     });
 
-    testWidgets('NotebookScreen renders category chips and notes header', (tester) async {
-      await tester.pumpWidget(createTestableWidget(child: const NotebookScreen(), db: db));
+    testWidgets('NotebookScreen renders category chips and notes header', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(child: const NotebookScreen(), db: db),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(NotebookScreen), findsOneWidget);
-      expect(find.text('دفتر الملاحظات'), findsOneWidget);
-      expect(find.byIcon(Icons.add_circle_outline), findsOneWidget);
+      expect(find.text('دفتر الأغذية'), findsOneWidget);
+      expect(find.byIcon(Icons.add_rounded), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 50));
     });
 
-    testWidgets('ShoppingListsScreen renders and handles empty lists', (tester) async {
-      await tester.pumpWidget(createTestableWidget(child: const ShoppingListsScreen(), db: db));
+    testWidgets('ShoppingListsScreen renders and handles empty lists', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestableWidget(child: const ShoppingListsScreen(), db: db),
+      );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -133,24 +155,29 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     });
 
-    testWidgets('SettingsScreen renders offline trust badge and export options', (tester) async {
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      'SettingsScreen renders offline trust badge and export options',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      await tester.pumpWidget(createTestableWidget(child: const SettingsScreen(), db: db));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpWidget(
+          createTestableWidget(child: const SettingsScreen(), db: db),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byType(SettingsScreen), findsOneWidget);
-      expect(find.text('الإعدادات'), findsOneWidget);
-      expect(find.text('وضع محلي فقط (بدون إنترنت)'), findsOneWidget);
-      expect(find.text('تصدير نسخة احتياطية (.qoffa JSON)'), findsOneWidget);
-      expect(find.text('تصدير المشتريات (CSV)'), findsOneWidget);
+        expect(find.byType(SettingsScreen), findsOneWidget);
+        expect(find.text('الإعدادات'), findsOneWidget);
+        expect(find.text('بيانات محلية وآمنة'), findsOneWidget);
+        expect(find.text('نسخ النسخة الاحتياطية'), findsOneWidget);
+        expect(find.text('نسخ المشتريات CSV'), findsOneWidget);
 
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump(const Duration(milliseconds: 50));
-    });
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump(const Duration(milliseconds: 50));
+      },
+    );
   });
 }

@@ -28,7 +28,9 @@ class DzdAmount implements Comparable<DzdAmount> {
   /// Returns micro-dinars (dinars * 1,000,000) for high precision comparisons.
   Decimal toPerBaseUnitRate(Decimal baseQuantity) {
     if (baseQuantity == Decimal.zero) return Decimal.zero;
-    return (Decimal.fromInt(dinars) / baseQuantity).toDecimal(scaleOnInfinitePrecision: 4);
+    return (Decimal.fromInt(dinars) / baseQuantity).toDecimal(
+      scaleOnInfinitePrecision: 4,
+    );
   }
 
   DzdAmount operator +(DzdAmount other) => DzdAmount(dinars + other.dinars);
@@ -75,8 +77,8 @@ class DzdAmount implements Comparable<DzdAmount> {
     final signStr = showSign && dinars > 0
         ? '+'
         : dinars < 0
-            ? '-'
-            : '';
+        ? '-'
+        : '';
 
     if (!showSymbol) {
       return '$signStr$formattedNumber';

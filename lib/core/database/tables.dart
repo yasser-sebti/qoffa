@@ -3,9 +3,11 @@ import 'package:drift/drift.dart';
 class Profiles extends Table {
   TextColumn get id => text()();
   TextColumn get language => text().withDefault(const Constant('ar'))();
-  IntColumn get monthlyBudgetDzd => integer().withDefault(const Constant(50000))();
+  IntColumn get monthlyBudgetDzd =>
+      integer().withDefault(const Constant(50000))();
   IntColumn get householdSize => integer().nullable()();
-  IntColumn get firstDayOfWeek => integer().withDefault(const Constant(7))(); // 7 = Sunday
+  IntColumn get firstDayOfWeek =>
+      integer().withDefault(const Constant(7))(); // 7 = Sunday
   TextColumn get currencySymbol => text().withDefault(const Constant('DA'))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
@@ -113,10 +115,15 @@ class LaterBuyItems extends Table {
   TextColumn get observedUnitId => text()();
   IntColumn get targetPriceDzd => integer().nullable()();
   TextColumn get storeId => text().nullable().references(Stores, #id)();
-  TextColumn get reason => text().withDefault(const Constant('expensive'))(); // expensive, not_urgent, compare_elsewhere
-  TextColumn get status => text().withDefault(const Constant('active'))(); // active, bought, skipped, dismissed, expired
+  TextColumn get reason => text().withDefault(
+    const Constant('expensive'),
+  )(); // expensive, not_urgent, compare_elsewhere
+  TextColumn get status => text().withDefault(
+    const Constant('active'),
+  )(); // active, bought, skipped, dismissed, expired
   DateTimeColumn get reminderAt => dateTime().nullable()();
-  TextColumn get resolvedPurchaseId => text().nullable().references(Purchases, #id)();
+  TextColumn get resolvedPurchaseId =>
+      text().nullable().references(Purchases, #id)();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get resolvedAt => dateTime().nullable()();
@@ -187,7 +194,8 @@ class ShoppingListItems extends Table {
   TextColumn get unitId => text().withDefault(const Constant('piece'))();
   IntColumn get estimatedPriceDzd => integer().nullable()();
   BoolColumn get isCompleted => boolean().withDefault(const Constant(false))();
-  TextColumn get convertedPurchaseId => text().nullable().references(Purchases, #id)();
+  TextColumn get convertedPurchaseId =>
+      text().nullable().references(Purchases, #id)();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -195,7 +203,8 @@ class ShoppingListItems extends Table {
 
 class Reminders extends Table {
   TextColumn get id => text()();
-  TextColumn get relatedType => text()(); // later_buy, recurring, budget, expiry
+  TextColumn get relatedType =>
+      text()(); // later_buy, recurring, budget, expiry
   TextColumn get relatedId => text()();
   DateTimeColumn get scheduledAt => dateTime()();
   IntColumn get localNotificationId => integer()();

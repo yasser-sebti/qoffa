@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../app/localization/app_localizations.dart';
 import '../../app/theme/qoffa_colors.dart';
 import '../../app/theme/qoffa_tokens.dart';
 
@@ -81,14 +82,14 @@ class _TopToastLayerState extends State<TopToastLayer>
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
-    _offsetAnimation = Tween<Offset>(
-      begin: const Offset(0, -1.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
-      reverseCurve: Curves.easeInBack,
-    ));
+    _offsetAnimation =
+        Tween<Offset>(begin: const Offset(0, -1.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: Curves.easeOutBack,
+            reverseCurve: Curves.easeInBack,
+          ),
+        );
 
     QoffaToast.activeToast.addListener(_handleToastChanged);
   }
@@ -138,18 +139,19 @@ class _TopToastLayerState extends State<TopToastLayer>
                         }
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: QoffaColors.whiteSurface,
-                          borderRadius: BorderRadius.circular(QoffaTokens.radiusFields),
-                          border: Border.all(color: toast?.color ?? QoffaColors.actionGreen, width: 2.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: QoffaColors.primaryNavy.withValues(alpha: 0.12),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
+                          borderRadius: BorderRadius.circular(
+                            QoffaTokens.radiusFields,
+                          ),
+                          border: Border.all(
+                            color: toast?.color ?? QoffaColors.actionGreen,
+                            width: 2.0,
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -158,7 +160,9 @@ class _TopToastLayerState extends State<TopToastLayer>
                                 width: 36,
                                 height: 36,
                                 decoration: BoxDecoration(
-                                  color: (toast?.color ?? QoffaColors.actionGreen).withValues(alpha: 0.15),
+                                  color:
+                                      (toast?.color ?? QoffaColors.actionGreen)
+                                          .withValues(alpha: 0.15),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
@@ -207,14 +211,18 @@ class _TopToastLayerState extends State<TopToastLayer>
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
                                 ),
                                 onPressed: () {
                                   toast?.onAction?.call();
                                   QoffaToast.hide();
                                 },
                                 child: Text(
-                                  toast?.actionLabel ?? 'تراجع',
+                                  toast?.actionLabel ??
+                                      AppLocalizations.of(context).undo,
                                   style: const TextStyle(
                                     fontFamily: 'Alexandria',
                                     fontWeight: FontWeight.w800,

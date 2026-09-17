@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../app/localization/app_localizations.dart';
 import '../../app/theme/qoffa_colors.dart';
 import '../../app/theme/qoffa_tokens.dart';
 
@@ -33,11 +34,14 @@ class _BarcodeScannerModalState extends State<BarcodeScannerModal> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       height: MediaQuery.of(context).size.height * 0.70,
       decoration: const BoxDecoration(
         color: QoffaColors.darkBackground,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(QoffaTokens.radiusMajor)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(QoffaTokens.radiusMajor),
+        ),
       ),
       child: Column(
         children: [
@@ -47,9 +51,9 @@ class _BarcodeScannerModalState extends State<BarcodeScannerModal> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'مسح باركود المنتج',
-                  style: TextStyle(
+                Text(
+                  l10n.scanBarcode,
+                  style: const TextStyle(
                     fontFamily: 'Hero Sandwich Pro',
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -90,7 +94,10 @@ class _BarcodeScannerModalState extends State<BarcodeScannerModal> {
                     width: 250,
                     height: 180,
                     decoration: BoxDecoration(
-                      border: Border.all(color: QoffaColors.brandGreen, width: 3),
+                      border: Border.all(
+                        color: QoffaColors.brandGreen,
+                        width: 3,
+                      ),
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
@@ -98,11 +105,12 @@ class _BarcodeScannerModalState extends State<BarcodeScannerModal> {
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.all(16.0),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Text(
-              'وجه الكاميرا نحو باركود المنتج لمسحه تلقائياً',
-              style: TextStyle(
+              l10n.scanBarcodeHint,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
                 fontFamily: 'Alexandria',
                 fontSize: 13,
                 color: Colors.white70,

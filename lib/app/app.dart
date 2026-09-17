@@ -31,9 +31,7 @@ class QoffaApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       builder: (context, child) {
-        return TopToastLayer(
-          child: child ?? const SizedBox(),
-        );
+        return TopToastLayer(child: child ?? const SizedBox());
       },
     );
   }

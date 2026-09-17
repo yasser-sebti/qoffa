@@ -30,16 +30,19 @@ void main() {
   });
 
   group('Drift SQLite Local-Only Database Integration', () {
-    test('initializes with default profile and initial seeded categories', () async {
-      final profile = await settingsRepo.getProfile();
-      expect(profile, isNotNull);
-      expect(profile!.language, 'ar');
-      expect(profile.monthlyBudgetDzd, 60000);
+    test(
+      'initializes with default profile and initial seeded categories',
+      () async {
+        final profile = await settingsRepo.getProfile();
+        expect(profile, isNotNull);
+        expect(profile!.language, 'ar');
+        expect(profile.monthlyBudgetDzd, 60000);
 
-      final categories = await db.select(db.categories).get();
-      expect(categories, isNotEmpty);
-      expect(categories.any((c) => c.nameEn.contains('Dairy')), isTrue);
-    });
+        final categories = await db.select(db.categories).get();
+        expect(categories, isNotEmpty);
+        expect(categories.any((c) => c.nameEn.contains('Dairy')), isTrue);
+      },
+    );
 
     test('creates and retrieves products with resilient search', () async {
       final product = await productRepo.createProduct(
@@ -59,32 +62,37 @@ void main() {
       expect(byId?.id, product.id);
     });
 
-    test('creates purchase, updates product lastPriceDzd, and aggregates monthly total', () async {
-      final product = await productRepo.createProduct(
-        name: 'Café Boun 250g',
-        initialPriceDzd: 250,
-      );
+    test(
+      'creates purchase, updates product lastPriceDzd, and aggregates monthly total',
+      () async {
+        final product = await productRepo.createProduct(
+          name: 'Café Boun 250g',
+          initialPriceDzd: 250,
+        );
 
-      final now = DateTime.now();
-      final purchase = await purchaseRepo.createPurchase(
-        productId: product.id,
-        quantity: 2.0,
-        unitId: 'pack',
-        priceDzd: 250,
-        isUnitPrice: true,
-        purchasedAt: now,
-        note: 'Achat du matin',
-      );
+        final now = DateTime.now();
+        final purchase = await purchaseRepo.createPurchase(
+          productId: product.id,
+          quantity: 2.0,
+          unitId: 'pack',
+          priceDzd: 250,
+          isUnitPrice: true,
+          purchasedAt: now,
+          note: 'Achat du matin',
+        );
 
-      expect(purchase.totalDzd, 500);
+        expect(purchase.totalDzd, 500);
 
-      // Product last price should automatically update to 250
-      final updatedProduct = await productRepo.getProductById(product.id);
-      expect(updatedProduct?.lastPriceDzd, 250);
+        // Product last price should automatically update to 250
+        final updatedProduct = await productRepo.getProductById(product.id);
+        expect(updatedProduct?.lastPriceDzd, 250);
 
-      final monthlyTotal = await purchaseRepo.watchMonthlyTotal(now.year, now.month).first;
-      expect(monthlyTotal.dinars, 500);
-    });
+        final monthlyTotal = await purchaseRepo
+            .watchMonthlyTotal(now.year, now.month)
+            .first;
+        expect(monthlyTotal.dinars, 500);
+      },
+    );
 
     test('tracks Later Buy items and status lifecycle', () async {
       final product = await productRepo.createProduct(name: 'Huile Elio 5L');
@@ -157,7 +165,10 @@ void main() {
     });
 
     test('exports purchases as CSV correctly', () async {
-      final product = await productRepo.createProduct(name: 'Sucre Cevital 1kg', initialPriceDzd: 100);
+      final product = await productRepo.createProduct(
+        name: 'Sucre Cevital 1kg',
+        initialPriceDzd: 100,
+      );
       await purchaseRepo.createPurchase(
         productId: product.id,
         quantity: 3,
@@ -169,7 +180,12 @@ void main() {
       );
 
       final csv = await settingsRepo.exportPurchasesAsCsv();
-      expect(csv, contains('id,local_date,product_name,quantity,unit,price_dzd,total_dzd'));
+      expect(
+        csv,
+        contains(
+          'id,local_date,product_name,quantity,unit,price_dzd,total_dzd',
+        ),
+      );
       expect(csv, contains('Sucre Cevital 1kg'));
       expect(csv, contains('300'));
     });
@@ -204,11 +220,15 @@ void main() {
       final result = await settingsRepo.importDataFromJson(sampleJson);
       expect(result, isTrue);
 
-      final restoredProduct = await productRepo.getProductById('prod-restore-1');
+      final restoredProduct = await productRepo.getProductById(
+        'prod-restore-1',
+      );
       expect(restoredProduct, isNotNull);
       expect(restoredProduct!.name, 'Fromage Portion Berbère');
 
-      final purchase = await (db.select(db.purchases)..where((t) => t.id.equals('pur-restore-1'))).getSingleOrNull();
+      final purchase = await (db.select(
+        db.purchases,
+      )..where((t) => t.id.equals('pur-restore-1'))).getSingleOrNull();
       expect(purchase, isNotNull);
       expect(purchase!.totalDzd, 360);
     });

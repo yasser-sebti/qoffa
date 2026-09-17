@@ -26,9 +26,7 @@ class MintBackgroundScaffold extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           const Positioned.fill(
-            child: CustomPaint(
-              painter: _MintGeometricBackgroundPainter(),
-            ),
+            child: CustomPaint(painter: _MintGeometricBackgroundPainter()),
           ),
           child,
         ],
