@@ -72,7 +72,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     l10n.onboardingTagline,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontFamily: 'Alexandria',
+                      fontFamily: 'Inter',
                       fontSize: 13,
                       height: 1.4,
                       color: QoffaColors.secondarySage,
@@ -199,7 +199,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             Text(
               l10n.estimatedBudget,
               style: const TextStyle(
-                fontFamily: 'Alexandria',
+                fontFamily: 'Inter',
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -222,7 +222,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   child: Text(
                     l10n.householdSize,
                     style: const TextStyle(
-                      fontFamily: 'Alexandria',
+                      fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -302,7 +302,7 @@ class _StepTitle extends StatelessWidget {
       Text(
         subtitle,
         style: const TextStyle(
-          fontFamily: 'Alexandria',
+          fontFamily: 'Inter',
           fontSize: 13,
           height: 1.45,
           color: QoffaColors.secondarySage,
@@ -345,7 +345,7 @@ class _LanguageChoice extends StatelessWidget {
               child: Text(
                 label,
                 style: TextStyle(
-                  fontFamily: 'Alexandria',
+                  fontFamily: 'Inter',
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
                   color: selected
@@ -392,7 +392,7 @@ class _FeatureRow extends StatelessWidget {
         child: Text(
           text,
           style: const TextStyle(
-            fontFamily: 'Alexandria',
+            fontFamily: 'Inter',
             fontSize: 13,
             height: 1.45,
             fontWeight: FontWeight.w600,

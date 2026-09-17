@@ -6,10 +6,11 @@ import '../../../app/theme/qoffa_colors.dart';
 import '../../../app/theme/qoffa_tokens.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/widgets/mint_background_scaffold.dart';
-import '../../../core/widgets/qoffa_button.dart';
+import '../../../core/widgets/qoffa_confirm_dialog.dart';
 import '../../../core/widgets/qoffa_dropdown.dart';
 import '../../../core/widgets/qoffa_layout.dart';
 import '../../../core/widgets/qoffa_motion.dart';
+import '../../../core/widgets/qoffa_tactile_pressable.dart';
 import '../../../core/widgets/top_toast_notification.dart';
 import '../data/notebook_repository.dart';
 
@@ -133,18 +134,19 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: QoffaButton(
+                          child: QoffaTactilePressable.outline(
                             label: l10n.cancel,
-                            variant: QoffaButtonVariant.white,
+                            height: 52,
                             onTap: () => Navigator.pop(sheetContext),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           flex: 2,
-                          child: QoffaButton(
+                          child: QoffaTactilePressable.filled(
                             label: l10n.saveNote,
                             icon: Icons.check_rounded,
+                            height: 52,
                             onTap: () async {
                               final title = titleController.text.trim();
                               if (title.isEmpty) {
@@ -246,7 +248,7 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
                               Text(
                                 '${l10n.lastEdited}: ${DateFormat.yMMMd(l10n.languageCode).add_jm().format(note.updatedAt.toLocal())}',
                                 style: const TextStyle(
-                                  fontFamily: 'Alexandria',
+                                  fontFamily: 'Inter',
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: QoffaColors.secondarySage,
@@ -321,18 +323,19 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: QoffaButton(
+                          child: QoffaTactilePressable.outline(
                             label: l10n.cancel,
-                            variant: QoffaButtonVariant.white,
+                            height: 52,
                             onTap: () => Navigator.pop(sheetContext),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           flex: 2,
-                          child: QoffaButton(
+                          child: QoffaTactilePressable.filled(
                             label: l10n.save,
                             icon: Icons.check_rounded,
+                            height: 52,
                             onTap: () async {
                               final title = titleController.text.trim();
                               if (title.isEmpty) return;
@@ -373,42 +376,13 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
 
   Future<bool> _confirmDeleteNote(Note note) async {
     final l10n = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await QoffaConfirmDialog.show(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(QoffaTokens.radiusMajor),
-        ),
-        title: Text(
-          l10n.deleteNoteConfirmTitle,
-          style: const TextStyle(
-            fontFamily: 'Hero Sandwich Pro',
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          l10n.deleteNoteConfirmMessage,
-          style: const TextStyle(
-            fontFamily: 'Alexandria',
-            fontSize: 13,
-            color: QoffaColors.secondarySage,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: Text(l10n.cancel),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: QoffaColors.warningCoral,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            child: Text(l10n.deleteNote),
-          ),
-        ],
-      ),
+      title: l10n.deleteNoteConfirmTitle,
+      message: l10n.deleteNoteConfirmMessage,
+      confirmLabel: l10n.deleteNote,
+      cancelLabel: l10n.cancel,
+      icon: Icons.delete_outline_rounded,
     );
 
     if (confirmed == true) {
@@ -459,14 +433,16 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
                       Semantics(
                         button: true,
                         label: l10n.newNote,
-                        child: IconButton.filled(
-                          onPressed: _showNewNoteSheet,
-                          style: IconButton.styleFrom(
-                            backgroundColor: QoffaColors.actionGreen,
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(50, 50),
+                        child: QoffaTactilePressable.filled(
+                          width: 48,
+                          height: 48,
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: _showNewNoteSheet,
+                          child: const Icon(
+                            Icons.add_rounded,
+                            size: 28,
+                            color: Colors.white,
                           ),
-                          icon: const Icon(Icons.add_rounded, size: 28),
                         ),
                       ),
                     ],
@@ -605,7 +581,7 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
           child: Text(
             label,
             style: TextStyle(
-              fontFamily: 'Alexandria',
+              fontFamily: 'Inter',
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: selected ? Colors.white : QoffaColors.primaryNavy,
@@ -673,7 +649,7 @@ class _NoteCard extends StatelessWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                fontFamily: 'Alexandria',
+                                fontFamily: 'Inter',
                                 fontSize: 16,
                                 height: 1.25,
                                 fontWeight: FontWeight.w800,
@@ -704,7 +680,7 @@ class _NoteCard extends StatelessWidget {
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontFamily: 'Alexandria',
+                            fontFamily: 'Inter',
                             fontSize: 13,
                             height: 1.4,
                             color: QoffaColors.secondarySage,
@@ -761,7 +737,7 @@ class _NoteMeta extends StatelessWidget {
     child: Text(
       text,
       style: TextStyle(
-        fontFamily: 'Alexandria',
+        fontFamily: 'Inter',
         fontSize: 10.5,
         fontWeight: FontWeight.w700,
         color: color,

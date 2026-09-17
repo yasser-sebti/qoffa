@@ -106,7 +106,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 Text(
                   l10n.calendarSubtitle,
                   style: const TextStyle(
-                    fontFamily: 'Alexandria',
+                    fontFamily: 'Inter',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: QoffaColors.secondarySage,
@@ -185,7 +185,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                                     child: Text(
                                       d,
                                       style: const TextStyle(
-                                        fontFamily: 'Alexandria',
+                                        fontFamily: 'Inter',
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         color: QoffaColors.secondarySage,
@@ -444,7 +444,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontFamily: 'Alexandria',
+            fontFamily: 'Inter',
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: QoffaColors.secondarySage,
@@ -495,7 +495,7 @@ class _MetricPill extends StatelessWidget {
           Text(
             subtitle,
             style: const TextStyle(
-              fontFamily: 'Alexandria',
+              fontFamily: 'Inter',
               fontSize: 11,
               color: QoffaColors.secondarySage,
             ),
@@ -574,7 +574,7 @@ class _TimelineEventRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontFamily: 'Alexandria',
+                    fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: QoffaColors.primaryNavy,
@@ -586,7 +586,7 @@ class _TimelineEventRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontFamily: 'Alexandria',
+                      fontFamily: 'Inter',
                       fontSize: 12,
                       color: QoffaColors.secondarySage,
                     ),

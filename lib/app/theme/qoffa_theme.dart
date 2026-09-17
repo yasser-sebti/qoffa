@@ -12,7 +12,7 @@ class QoffaTheme {
       brightness: Brightness.light,
       primaryColor: QoffaColors.actionGreen,
       scaffoldBackgroundColor: QoffaColors.paleMintBackground,
-      fontFamily: 'Alexandria',
+      fontFamily: 'Inter',
       colorScheme: const ColorScheme.light(
         primary: QoffaColors.actionGreen,
         onPrimary: QoffaColors.whiteSurface,
@@ -62,12 +62,12 @@ class QoffaTheme {
           vertical: 15,
         ),
         labelStyle: const TextStyle(
-          fontFamily: 'Alexandria',
+          fontFamily: 'Inter',
           color: QoffaColors.secondarySage,
           fontWeight: FontWeight.w600,
         ),
         hintStyle: TextStyle(
-          fontFamily: 'Alexandria',
+          fontFamily: 'Inter',
           color: QoffaColors.secondarySage.withValues(alpha: 0.72),
           fontWeight: FontWeight.w500,
         ),
@@ -149,7 +149,7 @@ class QoffaTheme {
       brightness: Brightness.dark,
       primaryColor: QoffaColors.brandGreen,
       scaffoldBackgroundColor: QoffaColors.darkBackground,
-      fontFamily: 'Alexandria',
+      fontFamily: 'Inter',
       colorScheme: const ColorScheme.dark(
         primary: QoffaColors.brandGreen,
         onPrimary: QoffaColors.primaryNavy,

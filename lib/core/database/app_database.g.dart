@@ -1171,6 +1171,26 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, Store> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _storeTypeMeta = const VerificationMeta(
+    'storeType',
+  );
+  @override
+  late final GeneratedColumn<String> storeType = GeneratedColumn<String>(
+    'store_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _ratingMeta = const VerificationMeta('rating');
+  @override
+  late final GeneratedColumn<int> rating = GeneratedColumn<int>(
+    'rating',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _deletedAtMeta = const VerificationMeta(
     'deletedAt',
   );
@@ -1183,7 +1203,14 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, Store> {
     requiredDuringInsert: false,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, name, area, deletedAt];
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    area,
+    storeType,
+    rating,
+    deletedAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1215,6 +1242,18 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, Store> {
         area.isAcceptableOrUnknown(data['area']!, _areaMeta),
       );
     }
+    if (data.containsKey('store_type')) {
+      context.handle(
+        _storeTypeMeta,
+        storeType.isAcceptableOrUnknown(data['store_type']!, _storeTypeMeta),
+      );
+    }
+    if (data.containsKey('rating')) {
+      context.handle(
+        _ratingMeta,
+        rating.isAcceptableOrUnknown(data['rating']!, _ratingMeta),
+      );
+    }
     if (data.containsKey('deleted_at')) {
       context.handle(
         _deletedAtMeta,
@@ -1242,6 +1281,14 @@ class $StoresTable extends Stores with TableInfo<$StoresTable, Store> {
         DriftSqlType.string,
         data['${effectivePrefix}area'],
       ),
+      storeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}store_type'],
+      ),
+      rating: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rating'],
+      ),
       deletedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}deleted_at'],
@@ -1259,11 +1306,15 @@ class Store extends DataClass implements Insertable<Store> {
   final String id;
   final String name;
   final String? area;
+  final String? storeType;
+  final int? rating;
   final DateTime? deletedAt;
   const Store({
     required this.id,
     required this.name,
     this.area,
+    this.storeType,
+    this.rating,
     this.deletedAt,
   });
   @override
@@ -1273,6 +1324,12 @@ class Store extends DataClass implements Insertable<Store> {
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || area != null) {
       map['area'] = Variable<String>(area);
+    }
+    if (!nullToAbsent || storeType != null) {
+      map['store_type'] = Variable<String>(storeType);
+    }
+    if (!nullToAbsent || rating != null) {
+      map['rating'] = Variable<int>(rating);
     }
     if (!nullToAbsent || deletedAt != null) {
       map['deleted_at'] = Variable<DateTime>(deletedAt);
@@ -1285,6 +1342,12 @@ class Store extends DataClass implements Insertable<Store> {
       id: Value(id),
       name: Value(name),
       area: area == null && nullToAbsent ? const Value.absent() : Value(area),
+      storeType: storeType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(storeType),
+      rating: rating == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rating),
       deletedAt: deletedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(deletedAt),
@@ -1300,6 +1363,8 @@ class Store extends DataClass implements Insertable<Store> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       area: serializer.fromJson<String?>(json['area']),
+      storeType: serializer.fromJson<String?>(json['storeType']),
+      rating: serializer.fromJson<int?>(json['rating']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
     );
   }
@@ -1310,6 +1375,8 @@ class Store extends DataClass implements Insertable<Store> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'area': serializer.toJson<String?>(area),
+      'storeType': serializer.toJson<String?>(storeType),
+      'rating': serializer.toJson<int?>(rating),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
     };
   }
@@ -1318,11 +1385,15 @@ class Store extends DataClass implements Insertable<Store> {
     String? id,
     String? name,
     Value<String?> area = const Value.absent(),
+    Value<String?> storeType = const Value.absent(),
+    Value<int?> rating = const Value.absent(),
     Value<DateTime?> deletedAt = const Value.absent(),
   }) => Store(
     id: id ?? this.id,
     name: name ?? this.name,
     area: area.present ? area.value : this.area,
+    storeType: storeType.present ? storeType.value : this.storeType,
+    rating: rating.present ? rating.value : this.rating,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
   );
   Store copyWithCompanion(StoresCompanion data) {
@@ -1330,6 +1401,8 @@ class Store extends DataClass implements Insertable<Store> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       area: data.area.present ? data.area.value : this.area,
+      storeType: data.storeType.present ? data.storeType.value : this.storeType,
+      rating: data.rating.present ? data.rating.value : this.rating,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
     );
   }
@@ -1340,13 +1413,15 @@ class Store extends DataClass implements Insertable<Store> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('area: $area, ')
+          ..write('storeType: $storeType, ')
+          ..write('rating: $rating, ')
           ..write('deletedAt: $deletedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, area, deletedAt);
+  int get hashCode => Object.hash(id, name, area, storeType, rating, deletedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1354,6 +1429,8 @@ class Store extends DataClass implements Insertable<Store> {
           other.id == this.id &&
           other.name == this.name &&
           other.area == this.area &&
+          other.storeType == this.storeType &&
+          other.rating == this.rating &&
           other.deletedAt == this.deletedAt);
 }
 
@@ -1361,12 +1438,16 @@ class StoresCompanion extends UpdateCompanion<Store> {
   final Value<String> id;
   final Value<String> name;
   final Value<String?> area;
+  final Value<String?> storeType;
+  final Value<int?> rating;
   final Value<DateTime?> deletedAt;
   final Value<int> rowid;
   const StoresCompanion({
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.area = const Value.absent(),
+    this.storeType = const Value.absent(),
+    this.rating = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1374,6 +1455,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
     required String id,
     required String name,
     this.area = const Value.absent(),
+    this.storeType = const Value.absent(),
+    this.rating = const Value.absent(),
     this.deletedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1382,6 +1465,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? area,
+    Expression<String>? storeType,
+    Expression<int>? rating,
     Expression<DateTime>? deletedAt,
     Expression<int>? rowid,
   }) {
@@ -1389,6 +1474,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (area != null) 'area': area,
+      if (storeType != null) 'store_type': storeType,
+      if (rating != null) 'rating': rating,
       if (deletedAt != null) 'deleted_at': deletedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1398,6 +1485,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
     Value<String>? id,
     Value<String>? name,
     Value<String?>? area,
+    Value<String?>? storeType,
+    Value<int?>? rating,
     Value<DateTime?>? deletedAt,
     Value<int>? rowid,
   }) {
@@ -1405,6 +1494,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
       id: id ?? this.id,
       name: name ?? this.name,
       area: area ?? this.area,
+      storeType: storeType ?? this.storeType,
+      rating: rating ?? this.rating,
       deletedAt: deletedAt ?? this.deletedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -1422,6 +1513,12 @@ class StoresCompanion extends UpdateCompanion<Store> {
     if (area.present) {
       map['area'] = Variable<String>(area.value);
     }
+    if (storeType.present) {
+      map['store_type'] = Variable<String>(storeType.value);
+    }
+    if (rating.present) {
+      map['rating'] = Variable<int>(rating.value);
+    }
     if (deletedAt.present) {
       map['deleted_at'] = Variable<DateTime>(deletedAt.value);
     }
@@ -1437,6 +1534,8 @@ class StoresCompanion extends UpdateCompanion<Store> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('area: $area, ')
+          ..write('storeType: $storeType, ')
+          ..write('rating: $rating, ')
           ..write('deletedAt: $deletedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -8213,6 +8312,8 @@ typedef $$StoresTableCreateCompanionBuilder =
       required String id,
       required String name,
       Value<String?> area,
+      Value<String?> storeType,
+      Value<int?> rating,
       Value<DateTime?> deletedAt,
       Value<int> rowid,
     });
@@ -8221,6 +8322,8 @@ typedef $$StoresTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<String?> area,
+      Value<String?> storeType,
+      Value<int?> rating,
       Value<DateTime?> deletedAt,
       Value<int> rowid,
     });
@@ -8246,6 +8349,16 @@ class $$StoresTableFilterComposer
 
   ColumnFilters<String> get area => $composableBuilder(
     column: $table.area,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get storeType => $composableBuilder(
+    column: $table.storeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rating => $composableBuilder(
+    column: $table.rating,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8279,6 +8392,16 @@ class $$StoresTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get storeType => $composableBuilder(
+    column: $table.storeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rating => $composableBuilder(
+    column: $table.rating,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
     column: $table.deletedAt,
     builder: (column) => ColumnOrderings(column),
@@ -8302,6 +8425,12 @@ class $$StoresTableAnnotationComposer
 
   GeneratedColumn<String> get area =>
       $composableBuilder(column: $table.area, builder: (column) => column);
+
+  GeneratedColumn<String> get storeType =>
+      $composableBuilder(column: $table.storeType, builder: (column) => column);
+
+  GeneratedColumn<int> get rating =>
+      $composableBuilder(column: $table.rating, builder: (column) => column);
 
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
@@ -8338,12 +8467,16 @@ class $$StoresTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> area = const Value.absent(),
+                Value<String?> storeType = const Value.absent(),
+                Value<int?> rating = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StoresCompanion(
                 id: id,
                 name: name,
                 area: area,
+                storeType: storeType,
+                rating: rating,
                 deletedAt: deletedAt,
                 rowid: rowid,
               ),
@@ -8352,12 +8485,16 @@ class $$StoresTableTableManager
                 required String id,
                 required String name,
                 Value<String?> area = const Value.absent(),
+                Value<String?> storeType = const Value.absent(),
+                Value<int?> rating = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => StoresCompanion.insert(
                 id: id,
                 name: name,
                 area: area,
+                storeType: storeType,
+                rating: rating,
                 deletedAt: deletedAt,
                 rowid: rowid,
               ),

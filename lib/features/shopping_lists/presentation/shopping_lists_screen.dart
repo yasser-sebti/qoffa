@@ -274,7 +274,7 @@ class _ShoppingListContentViewState
                     decoration: InputDecoration(
                       hintText: l10n.addListItemHint,
                       hintStyle: const TextStyle(
-                        fontFamily: 'Alexandria',
+                        fontFamily: 'Inter',
                         fontSize: 13,
                         color: QoffaColors.secondarySage,
                       ),
@@ -314,7 +314,7 @@ class _ShoppingListContentViewState
                   child: Text(
                     l10n.emptyShoppingList,
                     style: TextStyle(
-                      fontFamily: 'Alexandria',
+                      fontFamily: 'Inter',
                       fontSize: 13,
                       color: QoffaColors.primaryNavy.withValues(alpha: 0.6),
                     ),
@@ -367,7 +367,7 @@ class _ShoppingListContentViewState
                           child: Text(
                             item.customName,
                             style: TextStyle(
-                              fontFamily: 'Alexandria',
+                              fontFamily: 'Inter',
                               fontSize: 15,
                               fontWeight: item.isCompleted
                                   ? FontWeight.w500

@@ -12,6 +12,7 @@ import '../../../core/widgets/qoffa_button.dart';
 import '../../../core/widgets/qoffa_dropdown.dart';
 import '../../../core/widgets/qoffa_layout.dart';
 import '../../../core/widgets/qoffa_motion.dart';
+import '../../../core/widgets/qoffa_tactile_pressable.dart';
 import '../../../core/widgets/top_toast_notification.dart';
 import '../data/settings_repository.dart';
 
@@ -122,7 +123,7 @@ class SettingsScreen extends ConsumerWidget {
                                   Text(
                                     l10n.localOnlyExplanation,
                                     style: TextStyle(
-                                      fontFamily: 'Alexandria',
+                                      fontFamily: 'Inter',
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                       color: QoffaColors.primaryNavy.withValues(
@@ -168,7 +169,7 @@ class SettingsScreen extends ConsumerWidget {
                                     Text(
                                       l10n.monthlyShoppingBudget,
                                       style: const TextStyle(
-                                        fontFamily: 'Alexandria',
+                                        fontFamily: 'Inter',
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
                                         color: QoffaColors.primaryNavy,
@@ -204,7 +205,7 @@ class SettingsScreen extends ConsumerWidget {
                                 label: Text(
                                   l10n.edit,
                                   style: const TextStyle(
-                                    fontFamily: 'Alexandria',
+                                    fontFamily: 'Inter',
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
@@ -227,7 +228,7 @@ class SettingsScreen extends ConsumerWidget {
                                 child: Text(
                                   l10n.householdSize,
                                   style: const TextStyle(
-                                    fontFamily: 'Alexandria',
+                                    fontFamily: 'Inter',
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                     color: QoffaColors.primaryNavy,
@@ -325,7 +326,7 @@ class SettingsScreen extends ConsumerWidget {
                           Text(
                             l10n.exportBackup,
                             style: const TextStyle(
-                              fontFamily: 'Alexandria',
+                              fontFamily: 'Inter',
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: QoffaColors.primaryNavy,
@@ -335,13 +336,16 @@ class SettingsScreen extends ConsumerWidget {
                           Text(
                             l10n.backupExplanation,
                             style: const TextStyle(
-                              fontFamily: 'Alexandria',
+                              fontFamily: 'Inter',
                               fontSize: 12,
                               color: QoffaColors.secondarySage,
                               height: 1.4,
                             ),
                           ),
-                          QoffaButton(
+                          const SizedBox(height: 14),
+                          QoffaTactilePressable.filled(
+                            width: double.infinity,
+                            height: 52,
                             label: l10n.exportJson,
                             icon: Icons.file_download_outlined,
                             onTap: () async {
@@ -402,7 +406,7 @@ class SettingsScreen extends ConsumerWidget {
                           Text(
                             l10n.aboutTagline,
                             style: TextStyle(
-                              fontFamily: 'Alexandria',
+                              fontFamily: 'Inter',
                               fontSize: 12,
                               color: QoffaColors.primaryNavy.withValues(
                                 alpha: 0.6,
@@ -531,7 +535,7 @@ class SettingsScreen extends ConsumerWidget {
             Text(
               l10n.pasteBackup,
               style: const TextStyle(
-                fontFamily: 'Alexandria',
+                fontFamily: 'Inter',
                 fontSize: 12,
                 color: QoffaColors.secondarySage,
               ),

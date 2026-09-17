@@ -115,7 +115,7 @@ class QoffaButton extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontFamily: 'Alexandria',
+                          fontFamily: 'Inter',
                           fontSize: fontSize,
                           fontWeight: FontWeight.w700,
                           color: textColor,

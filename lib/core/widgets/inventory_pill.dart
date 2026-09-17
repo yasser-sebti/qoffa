@@ -47,7 +47,7 @@ class InventoryPill extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontFamily: 'Alexandria',
+              fontFamily: 'Inter',
               fontSize: fontSize,
               fontWeight: FontWeight.w600,
               color: textColor,

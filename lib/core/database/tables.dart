@@ -36,6 +36,8 @@ class Stores extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get area => text().nullable()();
+  TextColumn get storeType => text().nullable()();
+  IntColumn get rating => integer().nullable()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
   @override

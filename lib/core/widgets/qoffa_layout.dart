@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/qoffa_colors.dart';
 import '../../app/theme/qoffa_tokens.dart';
-import 'qoffa_button.dart';
+import 'qoffa_tactile_pressable.dart';
 
 class QoffaContentWidth extends StatelessWidget {
   const QoffaContentWidth({required this.child, super.key});
@@ -102,7 +102,7 @@ class QoffaEmptyState extends StatelessWidget {
           message,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontFamily: 'Alexandria',
+            fontFamily: 'Inter',
             fontSize: 13,
             height: 1.45,
             color: QoffaColors.secondarySage,
@@ -110,7 +110,7 @@ class QoffaEmptyState extends StatelessWidget {
         ),
         if (actionLabel != null && onAction != null) ...[
           const SizedBox(height: 18),
-          QoffaButton(label: actionLabel!, onTap: onAction!),
+          QoffaTactilePressable.filled(label: actionLabel!, onTap: onAction!),
         ],
       ],
     ),

@@ -1,3 +1,6 @@
+// ignore_for_file: unused_element, unused_field, unused_import, unused_local_variable
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,17 +9,30 @@ import '../../../app/localization/app_localizations.dart';
 import '../../../app/theme/qoffa_colors.dart';
 import '../../../app/theme/qoffa_tokens.dart';
 import '../../../core/database/app_database.dart';
+import '../../../core/database/database_provider.dart';
+import 'package:drift/drift.dart' hide Column;
 import '../../../core/units/unit_registry.dart';
 import '../../../core/widgets/barcode_scanner_modal.dart';
 import '../../../core/widgets/mint_background_scaffold.dart';
+import '../../../core/widgets/qoffa_anchor_dropdown.dart';
 import '../../../core/widgets/qoffa_button.dart';
 import '../../../core/widgets/qoffa_dropdown.dart';
-import '../../../core/widgets/qoffa_icon_button.dart';
+import '../../../core/widgets/qoffa_animated_counter.dart';
 import '../../../core/widgets/qoffa_motion.dart';
+import '../../../core/widgets/qoffa_pressable.dart';
+import '../../../core/widgets/qoffa_tactile_pressable.dart';
 import '../../../core/widgets/top_toast_notification.dart';
 import '../../later_buy/data/later_buy_repository.dart';
 import '../../products/data/product_repository.dart';
+import '../../settings/data/settings_repository.dart';
 import '../../shopping_lists/data/shopping_list_repository.dart';
+import '../../../core/money/thousands_separator_input_formatter.dart';
+import '../../../core/widgets/qoffa_quantity_selector.dart';
+import '../../../core/widgets/qoffa_typing_box.dart';
+import '../../../core/widgets/qoffa_search_picker_sheet.dart';
+import '../../stores/data/store_repository.dart';
+import '../../stores/domain/store_type.dart';
+import '../../stores/presentation/qoffa_new_store_sheet.dart';
 import '../data/purchase_repository.dart';
 
 class AddPurchaseScreen extends ConsumerStatefulWidget {
@@ -28,21 +44,72 @@ class AddPurchaseScreen extends ConsumerStatefulWidget {
   ConsumerState<AddPurchaseScreen> createState() => _AddPurchaseScreenState();
 }
 
-class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
+class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
+    with SingleTickerProviderStateMixin {
   final _productController = TextEditingController();
   final _priceController = TextEditingController();
+  final _unitPriceController = TextEditingController();
+  final _priceFocusNode = FocusNode();
   double _quantity = 1.0;
   String _selectedUnitId = 'piece';
+  static const double _maxQuantity = 999.0;
+  bool _isQtyIncreasing = true;
   String _selectedStore = '';
+  String? _selectedStoreId;
+  String _selectedStoreName = '';
+  String? _selectedStoreType;
   DateTime _selectedDate = DateTime.now();
   int? _lastPriceDzd;
-  bool _isUnitPrice = false;
+  bool _isUnitPrice = true;
   String? _selectedProductId;
   List<Product> _matchingProducts = [];
+  int _itemPickEpoch = 0;
+  List<Product> _quickAddSuggestions = [];
+  late final AnimationController _refreshAnimController;
+  late final Animation<double> _refreshRotation;
+
+  int get _parsedPrice =>
+      int.tryParse(_priceController.text.replaceAll(',', '').trim()) ?? 0;
 
   @override
   void initState() {
     super.initState();
+    _refreshAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 380),
+      value: 1.0,
+    );
+    _refreshRotation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _refreshAnimController,
+        curve: Curves.easeInOutCubic,
+      ),
+    );
+    final initialPrice = _priceController.text.replaceAll(',', '').trim();
+    if (initialPrice.isNotEmpty && int.tryParse(initialPrice) != null) {
+      _unitPriceController.text =
+          NumberFormat('#,###', 'en_US').format(int.parse(initialPrice));
+    } else {
+      _unitPriceController.text = initialPrice;
+    }
+    _priceFocusNode.addListener(() {
+      if (mounted) setState(() {});
+    });
+    _priceController.addListener(() {
+      final raw = _priceController.text.replaceAll(',', '').trim();
+      final formatted = raw.isEmpty
+          ? ''
+          : (int.tryParse(raw) != null
+              ? NumberFormat('#,###', 'en_US').format(int.parse(raw))
+              : raw);
+      if (_unitPriceController.text != formatted) {
+        _unitPriceController.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+      }
+      if (mounted) setState(() {});
+    });
     if (widget.initialProductId != null) {
       Future<void>(() async {
         final product = await ref
@@ -51,12 +118,16 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
         if (product != null && mounted) _selectProduct(product);
       });
     }
+    _loadQuickAddSuggestions();
   }
 
   @override
   void dispose() {
+    _refreshAnimController.dispose();
     _productController.dispose();
     _priceController.dispose();
+    _unitPriceController.dispose();
+    _priceFocusNode.dispose();
     super.dispose();
   }
 
@@ -78,30 +149,65 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
 
   void _selectProduct(Product product) {
     setState(() {
+      _itemPickEpoch++;
       _productController.text = product.name;
-      _selectedProductId = product.id;
+      _selectedProductId =
+          product.id.startsWith('staple_') ? null : product.id;
       _selectedUnitId = product.preferredUnitId;
       _lastPriceDzd = product.lastPriceDzd;
       _matchingProducts = [];
+      if (product.lastPriceDzd != null) {
+        _priceController.text = product.lastPriceDzd.toString();
+        _unitPriceController.text = product.lastPriceDzd.toString();
+      } else {
+        _priceController.clear();
+        _unitPriceController.clear();
+      }
+    });
+  }
+
+  void _selectCustomProduct(String name) {
+    setState(() {
+      _itemPickEpoch++;
+      _productController.text = name.trim();
+      _selectedProductId = null;
+      _lastPriceDzd = null;
+      _matchingProducts = [];
       _priceController.clear();
+      _unitPriceController.clear();
+    });
+  }
+
+  void _clearSelectedProduct() {
+    setState(() {
+      _itemPickEpoch++;
+      _productController.clear();
+      _selectedProductId = null;
+      _lastPriceDzd = null;
+      _matchingProducts = [];
+      _priceController.clear();
+      _unitPriceController.clear();
     });
   }
 
   int get _todayDiff {
-    final currentPrice = int.tryParse(_priceController.text) ?? 0;
-    if (_lastPriceDzd == null || currentPrice == 0) return 0;
-    return currentPrice - _lastPriceDzd!;
+    if (_lastPriceDzd == null || _parsedPrice == 0) return 0;
+    return _parsedPrice - _lastPriceDzd!;
   }
 
   void _incrementQty() {
-    setState(() {
-      _quantity += 1.0;
-    });
+    if (_quantity < _maxQuantity) {
+      setState(() {
+        _isQtyIncreasing = true;
+        _quantity += 1.0;
+      });
+    }
   }
 
   void _decrementQty() {
-    if (_quantity > 1.0) {
+    if (_quantity > 0.0) {
       setState(() {
+        _isQtyIncreasing = false;
         _quantity -= 1.0;
       });
     }
@@ -118,7 +224,7 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
       return;
     }
 
-    final price = int.tryParse(_priceController.text) ?? 0;
+    final price = _parsedPrice;
     if (price <= 0) {
       QoffaToast.show(
         message: l10n.validPriceRequired,
@@ -154,16 +260,17 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
       quantity: _quantity,
       unitId: _selectedUnitId,
       priceDzd: price,
-      isUnitPrice: _isUnitPrice,
+      isUnitPrice: true,
       purchasedAt: _selectedDate,
+      storeId: _selectedStoreId,
       note: null,
     );
 
     // Show non-blocking confirmation toast with 5-second Undo
     final diff = _todayDiff;
     final message = diff != 0
-        ? '$name · ${diff > 0 ? '+' : ''}$diff DA'
-        : '$name · ${purchase.totalDzd} DA';
+        ? '$name Â· ${diff > 0 ? '+' : ''}$diff DA'
+        : '$name Â· ${purchase.totalDzd} DA';
 
     QoffaToast.show(
       title: l10n.purchaseSaved,
@@ -179,7 +286,11 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
     );
 
     if (mounted) {
-      context.pop();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/');
+      }
     }
   }
 
@@ -194,7 +305,7 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
       return;
     }
 
-    final price = int.tryParse(_priceController.text) ?? 0;
+    final price = _parsedPrice;
     if (price <= 0) {
       QoffaToast.show(
         message: l10n.validPriceRequired,
@@ -221,17 +332,22 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
       observedQuantity: _quantity,
       observedUnitId: _selectedUnitId,
       targetPriceDzd: _lastPriceDzd ?? (price * 0.85).round(),
+      storeId: _selectedStoreId,
     );
 
     QoffaToast.show(
       title: l10n.addedToLaterBuy,
-      message: '$name · $price DA',
+      message: '$name Â· $price DA',
       icon: Icons.watch_later_outlined,
       color: QoffaColors.warningCoral,
     );
 
     if (mounted) {
-      context.pop();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/');
+      }
     }
   }
 
@@ -246,7 +362,7 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
       return;
     }
 
-    final price = int.tryParse(_priceController.text);
+    final price = _parsedPrice > 0 ? _parsedPrice : null;
     final shoppingRepo = ref.read(shoppingListRepositoryProvider);
     final list = await shoppingRepo.getOrCreateDefaultList(
       title: l10n.defaultShoppingList,
@@ -267,7 +383,11 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
     );
 
     if (mounted) {
-      context.pop();
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/');
+      }
     }
   }
 
@@ -306,10 +426,11 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
 
   void _selectQuickStaple(String name, String unit, int lastPrice) {
     setState(() {
+      _itemPickEpoch++;
       _productController.text = name;
       _selectedUnitId = unit;
       _lastPriceDzd = lastPrice;
-      _priceController.clear();
+      _priceController.text = lastPrice.toString();
     });
   }
 
@@ -374,207 +495,882 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
 
     return MintBackgroundScaffold(
       child: SafeArea(
-        child: SingleChildScrollView(
-          key: const PageStorageKey('add-purchase-scroll'),
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Back button & Title
-              Row(
+        child: Column(
+          children: [
+            // Top App Bar matching Settings styling and position
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
+              child: Row(
                 children: [
-                  QoffaIconButton(
-                    icon: Icons.arrow_back_rounded,
-                    size: 44,
-                    iconSize: 22,
-                    onTap: () => context.pop(),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: QoffaColors.primaryNavy,
+                    ),
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/');
+                      }
+                    },
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 8),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.addPurchaseTitle,
-                          style: const TextStyle(
-                            fontFamily: 'Hero Sandwich Pro',
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
-                            color: QoffaColors.primaryNavy,
-                            height: 1.1,
-                          ),
-                        ),
-                        Text(
-                          l10n.addPurchaseSubtitle,
-                          style: const TextStyle(
-                            fontFamily: 'Alexandria',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: QoffaColors.secondarySage,
-                          ),
-                        ),
-                      ],
+                    child: Text(
+                      l10n.addPurchaseTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Hero Sandwich Pro',
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: QoffaColors.primaryNavy,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  QoffaIconButton(
-                    icon: Icons.calendar_today_rounded,
-                    iconColor: QoffaColors.actionGreen,
-                    size: 44,
-                    iconSize: 21,
-                    tooltip: l10n.date,
+                  QoffaTactilePressable(
                     onTap: _pickDate,
+                    borderRadius: BorderRadius.circular(QoffaTokens.radiusPill),
+                    backgroundColor:
+                        QoffaColors.whiteSurface.withValues(alpha: 0.92),
+                    borderColor: QoffaColors.softBorder,
+                    borderWidth: 1.2,
+                    hoverBackgroundColor: QoffaColors.mintSurfaceTint,
+                    hoverBorderColor: QoffaColors.actionGreen,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 130),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.event_rounded,
+                            size: 16,
+                            color: QoffaColors.actionGreen,
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                DateFormat.yMMMd(
+                                  l10n.languageCode,
+                                ).format(_selectedDate),
+                                maxLines: 1,
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: QoffaColors.primaryNavy,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              InkWell(
-                onTap: _pickDate,
-                borderRadius: BorderRadius.circular(QoffaTokens.radiusPill),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: QoffaColors.whiteSurface.withValues(alpha: 0.86),
-                    borderRadius: BorderRadius.circular(QoffaTokens.radiusPill),
-                    border: Border.all(color: QoffaColors.softBorder),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.event_rounded,
-                        size: 17,
-                        color: QoffaColors.actionGreen,
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Main Container with standard white background, radius, outline
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: QoffaColors.whiteSurface,
+                        borderRadius: BorderRadius.circular(
+                          QoffaTokens.radiusMajor,
+                        ),
+                        border: Border.all(
+                          color: QoffaColors.softBorder,
+                          width: 1.5,
+                        ),
                       ),
-                      const SizedBox(width: 7),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_productController.text.trim().isEmpty)
+                            _buildAddItemRowButton(l10n)
+                          else
+                            _buildSelectedItemRow(),
+                          const SizedBox(height: 12),
+                          _buildPriceCalculatorCard(l10n),
+                          const SizedBox(height: 14),
+                          _buildQuantityAndUnitRow(l10n),
+                          const SizedBox(height: 14),
+                          _buildPricePerUnitAndStoreRow(l10n),
+                          const SizedBox(height: 16),
+                          _buildActionButtonsRow(l10n),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildAddSomethingElseSection(l10n),
+                    const SizedBox(height: 16),
+                    _buildBudgetProgressCard(l10n),
+                    const SizedBox(height: 48),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddItemRowButton(AppLocalizations l10n) {
+    return QoffaTactilePressable(
+      height: 58.0,
+      width: double.infinity,
+      borderRadius: BorderRadius.circular(16),
+      backgroundColor: const Color(0xFFF4FAF6),
+      borderColor: QoffaColors.softBorder,
+      hoverBackgroundColor: QoffaColors.mintSurfaceTint,
+      hoverBorderColor: QoffaColors.actionGreen,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      onTap: _openPickItemBottomSheet,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: QoffaColors.mintSurfaceTint,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.add_rounded,
+              color: QoffaColors.actionGreen,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              l10n.addItem,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 15.5,
+                fontWeight: FontWeight.w700,
+                color: QoffaColors.primaryNavy,
+              ),
+            ),
+          ),
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: QoffaColors.mintSurfaceTint,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: QoffaColors.actionGreen,
+              size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectedItemRow() {
+    return QoffaTactilePressable(
+      height: 58.0,
+      width: double.infinity,
+      borderRadius: BorderRadius.circular(16),
+      backgroundColor: const Color(0xFFF4FAF6),
+      borderColor: QoffaColors.softBorder,
+      hoverBackgroundColor: QoffaColors.mintSurfaceTint,
+      hoverBorderColor: QoffaColors.actionGreen,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      onTap: _openPickItemBottomSheet,
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: QoffaColors.mintSurfaceTint.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            alignment: Alignment.center,
+            child: _buildProductImagePreview(
+              _productController.text,
+              size: 34,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _productController.text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: QoffaColors.primaryNavy,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          QoffaTactilePressable(
+            width: 28,
+            height: 28,
+            borderRadius: BorderRadius.circular(14),
+            backgroundColor: QoffaColors.actionGreen,
+            borderColor: QoffaColors.actionGreen,
+            hoverBackgroundColor: QoffaColors.pressedGreen,
+            hoverBorderColor: QoffaColors.pressedGreen,
+            onTap: _clearSelectedProduct,
+            child: const Icon(
+              Icons.close_rounded,
+              size: 16,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceCalculatorCard(AppLocalizations l10n) {
+    final currentPrice = _parsedPrice > 0 ? _parsedPrice : null;
+    final bool hasCurrentPrice = currentPrice != null && currentPrice > 0;
+    final bool hasLastPrice = _lastPriceDzd != null;
+
+    final int? todayAnimatedValue;
+    final String todayPrefix;
+    final Color todayColor;
+    final IconData todayIcon;
+
+    if (!hasCurrentPrice) {
+      todayAnimatedValue = null;
+      todayPrefix = '';
+      todayColor = QoffaColors.secondarySage;
+      todayIcon = Icons.trending_flat_rounded;
+    } else if (!hasLastPrice) {
+      todayAnimatedValue = currentPrice;
+      todayPrefix = '';
+      todayColor = QoffaColors.actionGreen;
+      todayIcon = Icons.trending_flat_rounded;
+    } else {
+      final diff = currentPrice - _lastPriceDzd!;
+      if (diff > 0) {
+        todayAnimatedValue = diff;
+        todayPrefix = '+';
+        todayColor = QoffaColors.warningCoral;
+        todayIcon = Icons.trending_up_rounded;
+      } else if (diff < 0) {
+        todayAnimatedValue = diff;
+        todayPrefix = '';
+        todayColor = QoffaColors.actionGreen;
+        todayIcon = Icons.trending_down_rounded;
+      } else {
+        todayAnimatedValue = 0;
+        todayPrefix = '';
+        todayColor = QoffaColors.primaryNavy;
+        todayIcon = Icons.trending_flat_rounded;
+      }
+    }
+
+    return Container(
+      height: 58.0,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4FAF6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: QoffaColors.softBorder,
+          width: 1.2,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Left side: Last price
+          Expanded(
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.bar_chart_rounded,
+                  size: 26,
+                  color: QoffaColors.actionGreen,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
                       Text(
-                        DateFormat.yMMMd(
-                          l10n.languageCode,
-                        ).format(_selectedDate),
+                        l10n.lastPrice,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontFamily: 'Alexandria',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: QoffaColors.primaryNavy,
+                          fontFamily: 'Inter',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: QoffaColors.secondarySage,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: QoffaAnimatedCounter(
+                          key: ValueKey<String>(
+                            'last-$_itemPickEpoch',
+                          ),
+                          value: _lastPriceDzd,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                            color: QoffaColors.primaryNavy,
+                            letterSpacing: -0.3,
+                            height: 1.1,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 14),
+              ],
+            ),
+          ),
 
-              // Main Transaction Form Card
-              QoffaReveal(
-                child: Container(
-                  padding: const EdgeInsets.all(22),
-                  decoration: BoxDecoration(
-                    color: QoffaColors.whiteSurface,
-                    borderRadius: BorderRadius.circular(
-                      QoffaTokens.radiusMajor,
-                    ),
-                    border: Border.all(
-                      color: QoffaColors.softBorder,
-                      width: 1.5,
+          // Subtle divider in middle
+          Container(
+            height: 32,
+            width: 1.2,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            color: QoffaColors.softBorder,
+          ),
+
+          // Right side: Today's Price Difference Calculator
+          Expanded(
+            child: InkWell(
+              onTap: () => _openEditTodayPriceDialog(context, l10n),
+              borderRadius: BorderRadius.circular(10),
+              child: Row(
+                children: [
+                  Icon(
+                    todayIcon,
+                    size: 26,
+                    color: todayColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          l10n.today,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: QoffaColors.secondarySage,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: QoffaAnimatedCounter(
+                            key: ValueKey<String>(
+                              'today-$_itemPickEpoch',
+                            ),
+                            value: todayAnimatedValue,
+                            prefix: todayPrefix,
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 17,
+                              fontWeight: FontWeight.w900,
+                              color: todayColor,
+                              letterSpacing: -0.3,
+                              height: 1.1,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Column(
-                    children: [
-                      // Product Input Row
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 4,
-                        ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openEditTodayPriceDialog(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) async {
+    final editController = TextEditingController(text: _priceController.text);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (sheetContext, setDialogState) {
+          final val = int.tryParse(editController.text.trim()) ?? 0;
+          final diff = (_lastPriceDzd != null && val > 0)
+              ? val - _lastPriceDzd!
+              : 0;
+
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(ctx).bottom,
+            ),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(QoffaTokens.radiusMajor),
+                ),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
-                          color: QoffaColors.mintSurfaceTint.withValues(
-                            alpha: 0.4,
+                          color: QoffaColors.softBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      l10n.today,
+                      style: const TextStyle(
+                        fontFamily: 'Hero Sandwich Pro',
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: QoffaColors.primaryNavy,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    TextField(
+                      controller: editController,
+                      autofocus: true,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(
+                        fontFamily: 'Hero Sandwich Pro',
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: QoffaColors.primaryNavy,
+                      ),
+                      decoration: InputDecoration(
+                        labelText: l10n.today,
+                        suffixText: 'DA',
+                        suffixStyle: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: QoffaColors.secondarySage,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.payments_outlined,
+                          color: QoffaColors.actionGreen,
+                        ),
+                      ),
+                      onChanged: (text) => setDialogState(() {}),
+                    ),
+                    if (_lastPriceDzd != null && val > 0) ...[
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Icon(
+                            diff > 0
+                                ? Icons.trending_up_rounded
+                                : (diff < 0
+                                    ? Icons.trending_down_rounded
+                                    : Icons.trending_flat_rounded),
+                            size: 20,
+                            color: diff > 0
+                                ? QoffaColors.warningCoral
+                                : (diff < 0
+                                    ? QoffaColors.actionGreen
+                                    : QoffaColors.secondarySage),
                           ),
+                          const SizedBox(width: 6),
+                          QoffaAnimatedCounter(
+                            value: diff,
+                            prefix: diff > 0 ? '+' : '',
+                            suffix: ' DA (${l10n.todayDiff})',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: diff > 0
+                                  ? QoffaColors.warningCoral
+                                  : (diff < 0
+                                      ? QoffaColors.actionGreen
+                                      : QoffaColors.secondarySage),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    QoffaTactilePressable.filled(
+                      width: double.infinity,
+                      height: 52,
+                      label: l10n.confirm,
+                      icon: Icons.check_rounded,
+                      onTap: () {
+                        setState(() {
+                          _itemPickEpoch++;
+                          _priceController.text = editController.text.trim();
+                          _unitPriceController.text = editController.text.trim();
+                        });
+                        Navigator.pop(ctx);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildProductImagePreview(String name, {double size = 40}) {
+    final lower = name.toLowerCase();
+    if (lower.contains('candia') ||
+        lower.contains('milk') ||
+        lower.contains('حليب') ||
+        lower.contains('lait')) {
+      return Image.asset(
+        'assets/images/candia_milk.png',
+        width: size,
+        height: size,
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) =>
+            _buildFallbackIcon(name, size),
+      );
+    }
+    return _buildFallbackIcon(name, size);
+  }
+
+  Widget _buildFallbackIcon(String name, double size) {
+    final lower = name.toLowerCase();
+    IconData icon = Icons.shopping_basket_rounded;
+    Color color = QoffaColors.actionGreen;
+    if (lower.contains('bread') ||
+        lower.contains('خبز') ||
+        lower.contains('pain') ||
+        lower.contains('baguette')) {
+      icon = Icons.bakery_dining_rounded;
+      color = QoffaColors.goldAccent;
+    } else if (lower.contains('egg') ||
+        lower.contains('بيض') ||
+        lower.contains('oeuf')) {
+      icon = Icons.egg_rounded;
+      color = QoffaColors.goldAccent;
+    } else if (lower.contains('potato') ||
+        lower.contains('بطاطا') ||
+        lower.contains('pomme de terre')) {
+      icon = Icons.grass_rounded;
+      color = QoffaColors.actionGreen;
+    } else if (lower.contains('tomato') ||
+        lower.contains('طماطم') ||
+        lower.contains('tomate')) {
+      icon = Icons.eco_rounded;
+      color = Colors.redAccent;
+    } else if (lower.contains('water') ||
+        lower.contains('ماء') ||
+        lower.contains('eau') ||
+        lower.contains('drink') ||
+        lower.contains('juice') ||
+        lower.contains('عصير')) {
+      icon = Icons.water_drop_rounded;
+      color = QoffaColors.skyBlue;
+    }
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      alignment: Alignment.center,
+      child: Icon(icon, color: color, size: size * 0.6),
+    );
+  }
+
+  Future<List<String>> _fetchTop3RecentFoods() async {
+    try {
+      final db = ref.read(databaseProvider);
+      final query = db.select(db.purchases).join([
+        innerJoin(
+          db.products,
+          db.products.id.equalsExp(db.purchases.productId),
+        ),
+      ])
+        ..where(db.purchases.deletedAt.isNull())
+        ..orderBy([OrderingTerm.desc(db.purchases.purchasedAt)])
+        ..limit(25);
+
+      final rows = await query.get();
+      final unique = <String>[];
+      for (final r in rows) {
+        final name = r.readTable(db.products).name.trim();
+        if (name.isNotEmpty && !unique.contains(name)) {
+          unique.add(name);
+          if (unique.length == 3) break;
+        }
+      }
+
+      if (unique.length < 3) {
+        final frequent = await ref
+            .read(productRepositoryProvider)
+            .getFrequentProducts(limit: 5);
+        for (final p in frequent) {
+          if (!unique.contains(p.name)) {
+            unique.add(p.name);
+            if (unique.length == 3) break;
+          }
+        }
+      }
+
+      // Default staple foods fallback if new user
+      const defaults = ['Candia Milk 1L', 'Baguette Bread', 'Fresh Eggs'];
+      for (final d in defaults) {
+        if (unique.length < 3 && !unique.contains(d)) {
+          unique.add(d);
+        }
+      }
+      return unique.take(3).toList();
+    } catch (_) {
+      return const ['Candia Milk 1L', 'Baguette Bread', 'Fresh Eggs'];
+    }
+  }
+
+  Future<void> _openPickItemBottomSheet() async {
+    final l10n = AppLocalizations.of(context);
+    final searchController = TextEditingController();
+    List<Product> searchResults = [];
+    final recentFoods = await _fetchTop3RecentFoods();
+
+    if (!mounted) return;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(
+                top: Radius.circular(QoffaTokens.radiusMajor),
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 42,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: QoffaColors.softBorder,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      l10n.addItem,
+                      style: const TextStyle(
+                        fontFamily: 'Hero Sandwich Pro',
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: QoffaColors.primaryNavy,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    // Food name bar with typing animation box like new note
+                    TextField(
+                      controller: searchController,
+                      autofocus: true,
+                      textCapitalization: TextCapitalization.sentences,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: QoffaColors.primaryNavy,
+                      ),
+                      cursorColor: QoffaColors.actionGreen,
+                      decoration: InputDecoration(
+                        labelText: l10n.foodName,
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: QoffaColors.actionGreen,
+                        ),
+                        suffixIcon: searchController.text.isNotEmpty
+                            ? Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      searchController.clear();
+                                      setSheetState(() => searchResults = []);
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 9,
+                                        vertical: 5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: QoffaColors.mintSurfaceTint,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: QoffaColors.softBorder,
+                                          width: 1.2,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.close_rounded,
+                                            size: 14,
+                                            color: QoffaColors.actionGreen,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            l10n.cancel,
+                                            style: const TextStyle(
+                                              fontFamily: 'Inter',
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700,
+                                              color: QoffaColors.actionGreen,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : null,
+                      ),
+                      onChanged: (val) async {
+                        final trimmed = val.trim();
+                        if (trimmed.isEmpty) {
+                          setSheetState(() => searchResults = []);
+                          return;
+                        }
+                        final results = await ref
+                            .read(productRepositoryProvider)
+                            .searchProducts(trimmed);
+                        setSheetState(() => searchResults = results);
+                      },
+                    ),
+
+                    // Search results dropdown
+                    if (searchController.text.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(
                             QoffaTokens.radiusFields,
                           ),
                           border: Border.all(
                             color: QoffaColors.softBorder,
-                            width: 1.5,
+                            width: 1.2,
                           ),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.local_grocery_store_outlined,
-                              color: QoffaColors.actionGreen,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextField(
-                                controller: _productController,
-                                style: const TextStyle(
-                                  fontFamily: 'Alexandria',
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: QoffaColors.primaryNavy,
-                                ),
-                                onChanged: _onProductSearch,
-                                decoration: InputDecoration(
-                                  hintText: l10n.productSearchPlaceholder,
-                                  border: InputBorder.none,
-                                ),
-                              ),
-                            ),
-                            if (_productController.text.isNotEmpty)
-                              GestureDetector(
-                                onTap: () => setState(() {
-                                  _productController.clear();
-                                  _selectedProductId = null;
-                                  _lastPriceDzd = null;
-                                  _matchingProducts = [];
-                                }),
-                                child: const Icon(
-                                  Icons.cancel_rounded,
-                                  color: QoffaColors.secondarySage,
-                                  size: 20,
-                                ),
-                              ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.qr_code_scanner_rounded,
-                                color: QoffaColors.actionGreen,
-                              ),
-                              tooltip: l10n.scanBarcode,
-                              onPressed: _scanBarcode,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                      ),
-                      if (_matchingProducts.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        QoffaDropdownMenuSurface(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: _matchingProducts.take(4).map((p) {
-                              return Material(
-                                color: Colors.transparent,
-                                child: ListTile(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ...searchResults.take(4).map((p) => ListTile(
                                   dense: true,
+                                  leading: _buildProductImagePreview(
+                                    p.name,
+                                    size: 30,
+                                  ),
                                   title: Text(
                                     p.name,
                                     style: const TextStyle(
-                                      fontFamily: 'Alexandria',
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
+                                      fontFamily: 'Inter',
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: QoffaColors.primaryNavy,
                                     ),
                                   ),
                                   subtitle: p.lastPriceDzd != null
                                       ? Text(
-                                          '${l10n.lastPrice}: ${p.lastPriceDzd} DA',
+                                          '${p.lastPriceDzd} DA',
                                           style: const TextStyle(
-                                            fontSize: 11,
-                                            color: QoffaColors.secondarySage,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: QoffaColors.actionGreen,
                                           ),
                                         )
                                       : null,
@@ -583,375 +1379,1223 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
                                     size: 16,
                                     color: QoffaColors.actionGreen,
                                   ),
-                                  onTap: () => _selectProduct(p),
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 14),
-
-                      // Price Context Badge Sub-row
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF6FBF8),
-                          borderRadius: BorderRadius.circular(
-                            QoffaTokens.radiusControls,
-                          ),
-                          border: Border.all(
-                            color: QoffaColors.softBorder,
-                            width: 1.0,
-                          ),
-                        ),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) => Wrap(
-                            spacing: 14,
-                            runSpacing: 8,
-                            children: [
-                              _PriceContextItem(
-                                icon: Icons.bar_chart_rounded,
-                                color: QoffaColors.skyBlue,
-                                text: _lastPriceDzd == null
-                                    ? l10n.noPreviousPrice
-                                    : '${l10n.lastPrice}: $_lastPriceDzd DA',
-                              ),
-                              if (_lastPriceDzd != null &&
-                                  _priceController.text.isNotEmpty)
-                                _PriceContextItem(
-                                  icon: diff >= 0
-                                      ? Icons.trending_up_rounded
-                                      : Icons.trending_down_rounded,
-                                  color: diff > 0
-                                      ? QoffaColors.warningCoral
-                                      : QoffaColors.actionGreen,
-                                  text:
-                                      '${l10n.todayDiff}: ${diff > 0 ? '+' : ''}$diff DA',
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-
-                      // Quantity Stepper & Unit Dropdown
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 5,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.quantity,
-                                  style: const TextStyle(
-                                    fontFamily: 'Alexandria',
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: QoffaColors.secondarySage,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: QoffaColors.mintSurfaceTint,
-                                    borderRadius: BorderRadius.circular(
-                                      QoffaTokens.radiusControls,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      IconButton(
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(
-                                          minWidth: 32,
-                                          minHeight: 32,
-                                        ),
-                                        icon: const Icon(
-                                          Icons.remove_rounded,
-                                          color: QoffaColors.actionGreen,
-                                        ),
-                                        onPressed: _decrementQty,
-                                      ),
-                                      Expanded(
-                                        child: Center(
-                                          child: Text(
-                                            _quantity.toInt().toString(),
-                                            style: const TextStyle(
-                                              fontFamily: 'Hero Sandwich Pro',
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.w900,
-                                              color: QoffaColors.primaryNavy,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      IconButton(
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(
-                                          minWidth: 32,
-                                          minHeight: 32,
-                                        ),
-                                        icon: const Icon(
-                                          Icons.add_rounded,
-                                          color: QoffaColors.actionGreen,
-                                        ),
-                                        onPressed: _incrementQty,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            flex: 5,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.unit,
-                                  style: const TextStyle(
-                                    fontFamily: 'Alexandria',
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: QoffaColors.secondarySage,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                QoffaDropdown<String>(
-                                  value: _selectedUnitId,
-                                  items: UnitRegistry.allUnits
-                                      .map(
-                                        (unit) => DropdownMenuItem(
-                                          value: unit.id,
-                                          child: Text(
-                                            l10n.unitName(unit.id),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      setState(() => _selectedUnitId = value);
-                                    }
+                                  onTap: () {
+                                    _selectProduct(p);
+                                    Navigator.pop(sheetContext);
                                   },
+                                )),
+                            if (!searchResults.any((p) =>
+                                p.name.toLowerCase() ==
+                                searchController.text.trim().toLowerCase()))
+                              InkWell(
+                                onTap: () {
+                                  _selectCustomProduct(
+                                    searchController.text.trim(),
+                                  );
+                                  Navigator.pop(sheetContext);
+                                },
+                                borderRadius: BorderRadius.circular(
+                                  QoffaTokens.radiusFields,
                                 ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Price Input & Store Dropdown
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 5,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                GestureDetector(
-                                  onTap: _toggleUnitPrice,
-                                  child: Text(
-                                    _isUnitPrice
-                                        ? l10n.pricePerUnit
-                                        : l10n.totalPrice,
-                                    style: const TextStyle(
-                                      fontFamily: 'Alexandria',
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: QoffaColors.secondarySage,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Container(
-                                  height: 50,
+                                child: Container(
+                                  width: double.infinity,
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
+                                    horizontal: 16,
+                                    vertical: 12,
                                   ),
                                   decoration: BoxDecoration(
+                                    color: QoffaColors.mintSurfaceTint
+                                        .withValues(alpha: 0.5),
                                     borderRadius: BorderRadius.circular(
-                                      QoffaTokens.radiusControls,
-                                    ),
-                                    border: Border.all(
-                                      color: QoffaColors.softBorder,
-                                      width: 1.5,
+                                      QoffaTokens.radiusFields,
                                     ),
                                   ),
                                   child: Row(
                                     children: [
                                       const Icon(
-                                        Icons.monetization_on_outlined,
+                                        Icons.add_circle_outline_rounded,
                                         color: QoffaColors.actionGreen,
                                         size: 20,
                                       ),
-                                      const SizedBox(width: 8),
+                                      const SizedBox(width: 10),
                                       Expanded(
-                                        child: TextField(
-                                          controller: _priceController,
-                                          keyboardType: TextInputType.number,
+                                        child: Text(
+                                          l10n.addNewGroceryItem(
+                                            searchController.text.trim(),
+                                          ),
                                           style: const TextStyle(
-                                            fontFamily: 'Hero Sandwich Pro',
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w800,
-                                            color: QoffaColors.primaryNavy,
+                                            fontFamily: 'Inter',
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: QoffaColors.actionGreen,
                                           ),
-                                          decoration: const InputDecoration(
-                                            suffixText: 'DA',
-                                            border: InputBorder.none,
-                                          ),
-                                          onChanged: (_) => setState(() {}),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // Recent picked foods underneath food name bar
+                    if (recentFoods.isNotEmpty) ...[
+                      const SizedBox(height: 22),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.history_rounded,
+                            size: 18,
+                            color: QoffaColors.actionGreen,
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            flex: 5,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  l10n.store,
-                                  style: const TextStyle(
-                                    fontFamily: 'Alexandria',
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: QoffaColors.secondarySage,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                QoffaPickerField(
-                                  value: _selectedStore,
-                                  hint: l10n.storeDefault,
-                                  prefixIcon: Icons.storefront_outlined,
-                                  onTap: _pickStore,
-                                ),
-                              ],
+                          const SizedBox(width: 6),
+                          Text(
+                            l10n.recentPickedFoods,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: QoffaColors.primaryNavy,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
-
-                      // 3 Actions: Buy Later vs Add to List vs Bought
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final first = QoffaButton(
-                            label: l10n.buyLaterAction,
-                            icon: Icons.watch_later_outlined,
-                            variant: QoffaButtonVariant.secondary,
-                            fontSize: 13,
-                            onTap: _handleBuyLater,
-                          );
-                          final second = QoffaButton(
-                            label: l10n.addToListAction,
-                            icon: Icons.playlist_add_rounded,
-                            variant: QoffaButtonVariant.secondary,
-                            fontSize: 13,
-                            onTap: _handleAddToList,
-                          );
-                          if (constraints.maxWidth < 330 ||
-                              MediaQuery.textScalerOf(context).scale(1) >
-                                  1.25) {
-                            return Column(
-                              children: [
-                                SizedBox(width: double.infinity, child: first),
-                                const SizedBox(height: 10),
-                                SizedBox(width: double.infinity, child: second),
-                              ],
-                            );
-                          }
-                          return Row(
-                            children: [
-                              Expanded(child: first),
-                              const SizedBox(width: 8),
-                              Expanded(child: second),
-                            ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      QoffaButton(
-                        label: l10n.boughtAction,
-                        icon: Icons.shopping_cart_rounded,
-                        variant: QoffaButtonVariant.primary,
-                        onTap: _handleBought,
-                      ),
+                      const SizedBox(height: 10),
+                      ...recentFoods.take(3).map((foodName) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: QoffaTactilePressable(
+                              height: 52.0,
+                              borderRadius: BorderRadius.circular(14.0),
+                              backgroundColor: QoffaColors.whiteSurface,
+                              borderColor: QoffaColors.softBorder,
+                              hoverBackgroundColor: QoffaColors.mintSurfaceTint,
+                              hoverBorderColor: QoffaColors.actionGreen,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                              ),
+                              onTap: () async {
+                                final matching = await ref
+                                    .read(productRepositoryProvider)
+                                    .searchProducts(foodName);
+                                if (matching.isNotEmpty) {
+                                  _selectProduct(matching.first);
+                                } else {
+                                  _selectCustomProduct(foodName);
+                                }
+                                if (sheetContext.mounted) {
+                                  Navigator.pop(sheetContext);
+                                }
+                              },
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: QoffaColors.mintSurfaceTint
+                                          .withValues(alpha: 0.6),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: _buildProductImagePreview(
+                                      foodName,
+                                      size: 30,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      foodName,
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: QoffaColors.primaryNavy,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      color: QoffaColors.mintSurfaceTint,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: QoffaColors.softBorder,
+                                        width: 1.2,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.add_rounded,
+                                      color: QoffaColors.actionGreen,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )),
                     ],
+                    const SizedBox(height: 16),
+                    QoffaTactilePressable.outline(
+                      width: double.infinity,
+                      height: 52,
+                      label: l10n.cancel,
+                      onTap: () => Navigator.pop(sheetContext),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuantityAndUnitRow(AppLocalizations l10n) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _buildQuantitySelector(l10n),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildUnitSelector(l10n),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuantitySelector(AppLocalizations l10n) {
+    return QoffaQuantitySelector(
+      label: l10n.quantity,
+      value: _quantity,
+      min: 0.0,
+      max: _maxQuantity,
+      onChanged: (newVal) {
+        setState(() {
+          _isQtyIncreasing = newVal > _quantity;
+          _quantity = newVal;
+        });
+      },
+    );
+  }
+
+  Widget _buildUnitSelector(AppLocalizations l10n) {
+    final currentUnit = UnitRegistry.fromIdOrFallback(_selectedUnitId);
+    final displayName = currentUnit.localizedName(l10n.languageCode);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.unit,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: QoffaColors.primaryNavy,
+          ),
+        ),
+        const SizedBox(height: 6),
+        QoffaAnchorDropdown<String>(
+          selectedValue: _selectedUnitId,
+          items: UnitRegistry.allUnits.map((unit) {
+            return QoffaDropdownMenuItem<String>(
+              value: unit.id,
+              label: unit.localizedName(l10n.languageCode),
+            );
+          }).toList(),
+          onSelected: (unitId) {
+            setState(() {
+              _selectedUnitId = unitId;
+            });
+          },
+          builder: (context, showDropdown) => QoffaTactilePressable.outline(
+            onTap: showDropdown,
+            height: 52.0,
+            width: double.infinity,
+            borderRadius: BorderRadius.circular(16),
+            backgroundColor: const Color(0xFFF4FAF6),
+            borderColor: QoffaColors.softBorder,
+            hoverBackgroundColor: QoffaColors.mintSurfaceTint,
+            hoverBorderColor: QoffaColors.actionGreen,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: QoffaColors.primaryNavy,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: QoffaColors.actionGreen,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+  Widget _buildPricePerUnitAndStoreRow(AppLocalizations l10n) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _buildPricePerUnitField(l10n),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStoreSelector(l10n),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPricePerUnitField(AppLocalizations l10n) {
+    return QoffaTypingBox.currency(
+      label: l10n.pricePerUnit,
+      controller: _unitPriceController,
+      focusNode: _priceFocusNode,
+      onChanged: (val) {
+        final clean = val.replaceAll(',', '').trim();
+        if (_priceController.text != clean) {
+          _priceController.text = clean;
+        }
+      },
+    );
+  }
+
+  Widget _buildStoreSelector(AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.store,
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: QoffaColors.primaryNavy,
+          ),
+        ),
+        const SizedBox(height: 6),
+        QoffaTactilePressable.outline(
+          onTap: _openPickStoreBottomSheet,
+          height: 52.0,
+          width: double.infinity,
+          borderRadius: BorderRadius.circular(16),
+          backgroundColor: const Color(0xFFF4FAF6),
+          borderColor: QoffaColors.softBorder,
+          hoverBackgroundColor: QoffaColors.mintSurfaceTint,
+          hoverBorderColor: QoffaColors.actionGreen,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Row(
+            children: [
+              Icon(
+                _selectedStoreType != null
+                    ? (StoreType.fromId(_selectedStoreType)?.icon ??
+                        Icons.storefront_rounded)
+                    : Icons.storefront_rounded,
+                color: QoffaColors.actionGreen,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _selectedStoreName.isEmpty
+                      ? l10n.selectStore
+                      : _selectedStoreName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _selectedStoreName.isEmpty
+                        ? QoffaColors.secondarySage
+                        : QoffaColors.primaryNavy,
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: QoffaColors.actionGreen,
+                size: 22,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
-              // Bottom Section: Add something else? Quick add
-              Text(
-                l10n.quickAddStaples,
-                style: const TextStyle(
-                  fontFamily: 'Hero Sandwich Pro',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: QoffaColors.primaryNavy,
+  Widget _buildActionButtonsRow(AppLocalizations l10n) {
+    return Row(
+      children: [
+        // Left button: Buy later (Same outline style as Add item button)
+        Expanded(
+          child: QoffaTactilePressable.outline(
+            onTap: _handleBuyLater,
+            height: 52.0,
+            borderRadius: BorderRadius.circular(16),
+            backgroundColor: const Color(0xFFF4FAF6),
+            borderColor: QoffaColors.softBorder,
+            hoverBackgroundColor: QoffaColors.mintSurfaceTint,
+            hoverBorderColor: QoffaColors.actionGreen,
+            textColor: QoffaColors.primaryNavy,
+            iconColor: QoffaColors.actionGreen,
+            icon: Icons.schedule_rounded,
+            label: l10n.buyLaterAction,
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Right button: Bought (Green themed fill)
+        Expanded(
+          child: QoffaTactilePressable.filled(
+            onTap: _handleBought,
+            height: 52.0,
+            borderRadius: BorderRadius.circular(16),
+            backgroundColor: QoffaColors.actionGreen,
+            borderColor: QoffaColors.actionGreen,
+            hoverBackgroundColor: QoffaColors.pressedGreen,
+            hoverBorderColor: QoffaColors.pressedGreen,
+            textColor: Colors.white,
+            iconColor: Colors.white,
+            icon: Icons.shopping_cart_rounded,
+            label: l10n.boughtAction,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openPickStoreBottomSheet() async {
+    final l10n = AppLocalizations.of(context);
+    final storeRepo = ref.read(storeRepositoryProvider);
+    final recentStores = await storeRepo.getRecentStores(limit: 5);
+
+    if (!mounted) return;
+
+    final selected = await QoffaSearchPickerSheet.show<Store>(
+      context: context,
+      title: l10n.selectStore,
+      searchLabel: l10n.searchOrAddStore,
+      canAddNew: true,
+      addNewLabelBuilder: (query) => l10n.addNewStoreNamed(query),
+      onSearch: (query) => storeRepo.searchStores(query),
+      itemBuilder: (ctx, store, onSelect) {
+        final type = StoreType.fromId(store.storeType);
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: QoffaColors.mintSurfaceTint,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  type?.icon ?? Icons.storefront_rounded,
+                  size: 20,
+                  color: QoffaColors.actionGreen,
                 ),
               ),
-              const SizedBox(height: 12),
-
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _QuickAddChip(
-                      label: l10n.quickProduct('eggs'),
-                      icon: Icons.egg_outlined,
-                      onTap: () => _selectQuickStaple('Eggs', 'tray', 550),
+                    Text(
+                      store.name,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: QoffaColors.primaryNavy,
+                      ),
                     ),
-                    const SizedBox(width: 10),
-                    _QuickAddChip(
-                      label: l10n.quickProduct('bread'),
-                      icon: Icons.bakery_dining_outlined,
-                      onTap: () =>
-                          _selectQuickStaple('Baguette Bread', 'piece', 15),
+                    if (store.area != null || store.rating != null || type != null)
+                      Row(
+                        children: [
+                          if (type != null) ...[
+                            Text(
+                              type.localizedName(l10n.languageCode),
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: QoffaColors.actionGreen,
+                              ),
+                            ),
+                            if (store.area != null || store.rating != null)
+                              const Text(' · ',
+                                  style: TextStyle(color: QoffaColors.secondarySage)),
+                          ],
+                          if (store.area != null) ...[
+                            Flexible(
+                              child: Text(
+                                store.area!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: QoffaColors.secondarySage,
+                                ),
+                              ),
+                            ),
+                            if (store.rating != null)
+                              const Text(' · ',
+                                  style: TextStyle(color: QoffaColors.secondarySage)),
+                          ],
+                          if (store.rating != null)
+                            Text(
+                              '★ ${store.rating}',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: QoffaColors.goldAccent,
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.north_west_rounded,
+                size: 16,
+                color: QoffaColors.actionGreen,
+              ),
+            ],
+          ),
+        );
+      },
+      onAddNew: (sheetContext, query) async {
+        Navigator.pop(sheetContext);
+        final newStore = await QoffaNewStoreSheet.show(
+          context,
+          initialName: query,
+        );
+        if (newStore != null && mounted) {
+          setState(() {
+            _selectedStore = newStore.name;
+            _selectedStoreId = newStore.id;
+            _selectedStoreName = newStore.name;
+            _selectedStoreType = newStore.storeType;
+          });
+        }
+      },
+      quickActionWidget: Builder(
+        builder: (sheetCtx) => QoffaTactilePressable.outline(
+          height: 48,
+          width: double.infinity,
+          borderRadius: BorderRadius.circular(14),
+          label: l10n.newStore,
+          icon: Icons.add_rounded,
+          onTap: () async {
+            Navigator.pop(sheetCtx);
+            final newStore = await QoffaNewStoreSheet.show(context);
+            if (newStore != null && mounted) {
+              setState(() {
+                _selectedStore = newStore.name;
+                _selectedStoreId = newStore.id;
+                _selectedStoreName = newStore.name;
+                _selectedStoreType = newStore.storeType;
+              });
+            }
+          },
+        ),
+      ),
+      recentTitle: l10n.recentPickedStores,
+      recentItems: recentStores,
+      recentItemBuilder: (ctx, store, onSelect) {
+        final type = StoreType.fromId(store.storeType);
+        return QoffaTactilePressable(
+          height: 52.0,
+          borderRadius: BorderRadius.circular(14.0),
+          backgroundColor: QoffaColors.whiteSurface,
+          borderColor: QoffaColors.softBorder,
+          hoverBackgroundColor: QoffaColors.mintSurfaceTint,
+          hoverBorderColor: QoffaColors.actionGreen,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          onTap: onSelect,
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: QoffaColors.mintSurfaceTint.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  type?.icon ?? Icons.storefront_rounded,
+                  size: 20,
+                  color: QoffaColors.actionGreen,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      store.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        color: QoffaColors.primaryNavy,
+                      ),
                     ),
-                    const SizedBox(width: 10),
-                    _QuickAddChip(
-                      label: l10n.quickProduct('tomatoes'),
-                      icon: Icons.eco_outlined,
-                      onTap: () => _selectQuickStaple('Tomatoes', 'kg', 120),
+                    if (store.area != null || type != null || store.rating != null)
+                      Row(
+                        children: [
+                          if (type != null || store.area != null)
+                            Flexible(
+                              child: Text(
+                                store.area ?? type!.localizedName(l10n.languageCode),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: QoffaColors.secondarySage,
+                                ),
+                              ),
+                            ),
+                          if ((type != null || store.area != null) && store.rating != null)
+                            const Text(
+                              ' · ',
+                              style: TextStyle(
+                                color: QoffaColors.secondarySage,
+                                fontSize: 11.5,
+                              ),
+                            ),
+                          if (store.rating != null)
+                            Text(
+                              '★ ${store.rating}',
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: QoffaColors.goldAccent,
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: QoffaColors.mintSurfaceTint,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: QoffaColors.softBorder,
+                    width: 1.2,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: QoffaColors.actionGreen,
+                  size: 18,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selected != null && mounted) {
+      setState(() {
+        _selectedStore = selected.name;
+        _selectedStoreId = selected.id;
+        _selectedStoreName = selected.name;
+        _selectedStoreType = selected.storeType;
+      });
+    }
+  }
+
+  Future<void> _loadQuickAddSuggestions({bool animate = false}) async {
+    if (animate && mounted) {
+      _refreshAnimController.forward(from: 0.0);
+    }
+    final purchaseRepo = ref.read(purchaseRepositoryProvider);
+    final productRepo = ref.read(productRepositoryProvider);
+
+    // 1. Fetch top most used products from purchases
+    final mostUsed = await purchaseRepo.getMostUsedProducts(limit: 12);
+    final pool = <Product>[...mostUsed];
+
+    // 2. Supplement with frequent products if pool is small
+    if (pool.length < 6) {
+      final frequent = await productRepo.getFrequentProducts(limit: 12);
+      for (final p in frequent) {
+        if (!pool.any((item) => item.id == p.id)) {
+          pool.add(p);
+        }
+      }
+    }
+
+    // 3. Fallback staples if still fewer than 4
+    if (pool.length < 4) {
+      final staples = [
+        (name: 'Eggs', unit: 'piece', price: 25),
+        (name: 'Bread', unit: 'piece', price: 15),
+        (name: 'Tomatoes', unit: 'kg', price: 90),
+        (name: 'Milk', unit: 'liter', price: 130),
+        (name: 'Potatoes', unit: 'kg', price: 75),
+        (name: 'Cheese', unit: 'piece', price: 220),
+        (name: 'Chicken', unit: 'kg', price: 480),
+        (name: 'Apples', unit: 'kg', price: 250),
+        (name: 'Coffee', unit: 'piece', price: 280),
+        (name: 'Oil', unit: 'liter', price: 125),
+      ];
+
+      for (final staple in staples) {
+        if (pool.length >= 8) break;
+        if (!pool.any((item) => item.name.toLowerCase() == staple.name.toLowerCase())) {
+          final existing = await productRepo.searchProducts(staple.name);
+          final match = existing.cast<Product?>().firstWhere(
+                (p) => p!.name.toLowerCase() == staple.name.toLowerCase(),
+                orElse: () => null,
+              );
+          if (match != null) {
+            pool.add(match);
+          } else {
+            pool.add(
+              Product(
+                id: 'staple_${staple.name.toLowerCase()}',
+                name: staple.name,
+                normalizedName: staple.name.toLowerCase(),
+                preferredUnitId: staple.unit,
+                lastPriceDzd: staple.price,
+                isArchived: false,
+                createdAt: DateTime.now().toUtc(),
+                updatedAt: DateTime.now().toUtc(),
+              ),
+            );
+          }
+        }
+      }
+    }
+
+    // 4. Randomly pick 4 from the pool for 2x2 grid
+    final shuffled = List<Product>.from(pool)..shuffle(Random());
+    if (mounted) {
+      setState(() {
+        _quickAddSuggestions = shuffled.take(4).toList();
+      });
+    }
+  }
+
+  String _productEmoji(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('egg') || lower.contains('بيض') || lower.contains('oeuf')) {
+      return '🥚';
+    }
+    if (lower.contains('bread') || lower.contains('خبز') || lower.contains('pain')) {
+      return '🍞';
+    }
+    if (lower.contains('tomato') || lower.contains('طماطم') || lower.contains('tomate')) {
+      return '🍅';
+    }
+    if (lower.contains('milk') || lower.contains('حليب') || lower.contains('lait')) {
+      return '🥛';
+    }
+    if (lower.contains('cheese') || lower.contains('جبن') || lower.contains('fromage')) {
+      return '🧀';
+    }
+    if (lower.contains('meat') || lower.contains('لحم') || lower.contains('viande')) {
+      return '🥩';
+    }
+    if (lower.contains('chicken') || lower.contains('دجاج') || lower.contains('poulet')) {
+      return '🍗';
+    }
+    if (lower.contains('apple') || lower.contains('تفاح') || lower.contains('pomme')) {
+      return '🍎';
+    }
+    if (lower.contains('banana') || lower.contains('موز') || lower.contains('banane')) {
+      return '🍌';
+    }
+    if (lower.contains('potato') || lower.contains('بطاطا') || lower.contains('pomme de terre')) {
+      return '🥔';
+    }
+    if (lower.contains('onion') || lower.contains('بصل') || lower.contains('oignon')) {
+      return '🧅';
+    }
+    if (lower.contains('coffee') || lower.contains('قهوة') || lower.contains('café')) {
+      return '☕';
+    }
+    if (lower.contains('tea') || lower.contains('شاي') || lower.contains('thé')) {
+      return '🫖';
+    }
+    if (lower.contains('oil') || lower.contains('زيت') || lower.contains('huile')) {
+      return '🫒';
+    }
+    return '🛍️';
+  }
+
+  Widget _buildAddSomethingElseSection(AppLocalizations l10n) {
+    if (_quickAddSuggestions.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: QoffaColors.whiteSurface,
+        borderRadius: BorderRadius.circular(QoffaTokens.radiusMajor),
+        border: Border.all(
+          color: QoffaColors.softBorder,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.addSomethingElse,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w800,
+                    color: QoffaColors.primaryNavy,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              QoffaPressable(
+                onTap: () => _loadQuickAddSuggestions(animate: true),
+                borderRadius: BorderRadius.circular(8),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    RotationTransition(
+                      turns: _refreshRotation,
+                      child: const Icon(
+                        Icons.refresh_rounded,
+                        size: 16,
+                        color: QoffaColors.actionGreen,
+                      ),
                     ),
-                    const SizedBox(width: 10),
-                    _QuickAddChip(
-                      label: l10n.quickProduct('potatoes'),
-                      icon: Icons.grass_outlined,
-                      onTap: () => _selectQuickStaple('Potatoes', 'kg', 80),
+                    const SizedBox(width: 4),
+                    Text(
+                      l10n.refresh,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: QoffaColors.actionGreen,
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Column(
+            children: [
+              for (int r = 0; r < _quickAddSuggestions.length; r += 2) ...[
+                if (r > 0) const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildAnimatedQuickAddCard(
+                        _quickAddSuggestions[r],
+                        index: r,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    if (r + 1 < _quickAddSuggestions.length)
+                      Expanded(
+                        child: _buildAnimatedQuickAddCard(
+                          _quickAddSuggestions[r + 1],
+                          index: r + 1,
+                        ),
+                      )
+                    else
+                      const Spacer(),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnimatedQuickAddCard(Product product, {required int index}) {
+    final start = (index * 0.08).clamp(0.0, 0.35);
+    final scaleAnim = Tween<double>(begin: 0.92, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _refreshAnimController,
+        curve: Interval(start, 1.0, curve: Curves.easeOutBack),
+      ),
+    );
+    final fadeAnim = Tween<double>(begin: 0.25, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _refreshAnimController,
+        curve: Interval(start, 1.0, curve: Curves.easeOut),
+      ),
+    );
+
+    return AnimatedBuilder(
+      animation: _refreshAnimController,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: scaleAnim.value,
+          child: Opacity(
+            opacity: fadeAnim.value.clamp(0.0, 1.0),
+            child: child,
+          ),
+        );
+      },
+      child: _buildQuickAddItemCard(product),
+    );
+  }
+
+  Widget _buildQuickAddItemCard(Product product) {
+    final isSelected = (_selectedProductId != null &&
+            _selectedProductId == product.id) ||
+        (_productController.text.trim().toLowerCase() ==
+                product.name.trim().toLowerCase() &&
+            _productController.text.trim().isNotEmpty);
+
+    return QoffaTactilePressable(
+      onTap: () {
+        _selectProduct(product);
+      },
+      height: 52.0,
+      borderRadius: BorderRadius.circular(14),
+      backgroundColor: isSelected
+          ? QoffaColors.mintSurfaceTint
+          : const Color(0xFFF4FAF6),
+      borderColor: isSelected ? QoffaColors.actionGreen : QoffaColors.softBorder,
+      hoverBackgroundColor: QoffaColors.mintSurfaceTint,
+      hoverBorderColor: QoffaColors.actionGreen,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: Row(
+        children: [
+          Text(
+            _productEmoji(product.name),
+            style: const TextStyle(fontSize: 20),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              product.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                color: QoffaColors.primaryNavy,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? QoffaColors.actionGreen
+                  : QoffaColors.mintSurfaceTint,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isSelected ? Icons.check_rounded : Icons.add_rounded,
+              size: 16,
+              color: isSelected ? Colors.white : QoffaColors.actionGreen,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildBudgetProgressCard(AppLocalizations l10n) {
+    final now = DateTime.now();
+    final localDateStr =
+        '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    final recordedTodayDzd =
+        ref.watch(dailyTotalProvider(localDateStr)).value?.dinars ?? 0;
+    final monthlyTotalDzd = ref
+            .watch(monthlyTotalProvider((year: now.year, month: now.month)))
+            .value
+            ?.dinars ??
+        0;
+    final profile = ref.watch(userProfileProvider).value;
+    final monthlyBudget = profile?.monthlyBudgetDzd ?? 60000;
+
+    final pendingItemCost =
+        (_parsedPrice > 0) ? (_parsedPrice * _quantity).round() : 0;
+    final currentTodaySpent = recordedTodayDzd + pendingItemCost;
+    final currentMonthlySpent = monthlyTotalDzd + pendingItemCost;
+    final remainingBudget = max(0, monthlyBudget - currentMonthlySpent);
+    final progressFraction = monthlyBudget > 0
+        ? (currentMonthlySpent / monthlyBudget).clamp(0.0, 1.0)
+        : 0.0;
+    final percentUsed = (progressFraction * 100).round();
+    final isOverLimit = currentMonthlySpent >= monthlyBudget;
+    final isNearLimit = progressFraction >= 0.85;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: QoffaColors.whiteSurface,
+        borderRadius: BorderRadius.circular(QoffaTokens.radiusMajor),
+        border: Border.all(
+          color: QoffaColors.softBorder,
+          width: 1.5,
         ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: QoffaColors.mintSurfaceTint,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  size: 20,
+                  color: QoffaColors.actionGreen,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.todaySpent,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: QoffaColors.secondarySage,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: QoffaAnimatedCounter(
+                        value: currentTodaySpent,
+                        style: const TextStyle(
+                          fontFamily: 'Hero Sandwich Pro',
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                          color: QoffaColors.primaryNavy,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 1.2,
+                height: 34,
+                margin: const EdgeInsets.symmetric(horizontal: 10),
+                color: QoffaColors.softBorder,
+              ),
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: isOverLimit
+                      ? const Color(0xFFFDE8E8)
+                      : (isNearLimit
+                          ? const Color(0xFFFFF3E8)
+                          : QoffaColors.mintSurfaceTint),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  isOverLimit
+                      ? Icons.warning_amber_rounded
+                      : (isNearLimit
+                          ? Icons.warning_rounded
+                          : Icons.savings_outlined),
+                  size: 20,
+                  color: isOverLimit
+                      ? QoffaColors.warningCoral
+                      : (isNearLimit
+                          ? const Color(0xFFF97316)
+                          : QoffaColors.actionGreen),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.remainingBudget,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: QoffaColors.secondarySage,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: QoffaAnimatedCounter(
+                        value: remainingBudget,
+                        style: TextStyle(
+                          fontFamily: 'Hero Sandwich Pro',
+                          fontSize: 19,
+                          fontWeight: FontWeight.w900,
+                          color: isOverLimit
+                              ? QoffaColors.warningCoral
+                              : (isNearLimit
+                                  ? const Color(0xFFF97316)
+                                  : QoffaColors.actionGreen),
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final totalWidth = constraints.maxWidth;
+              final barWidth =
+                  (totalWidth * progressFraction).clamp(0.0, totalWidth);
+              final barColor = isOverLimit
+                  ? QoffaColors.warningCoral
+                  : (isNearLimit
+                      ? const Color(0xFFF97316)
+                      : QoffaColors.actionGreen);
+
+              return Stack(
+                children: [
+                  Container(
+                    height: 8.0,
+                    width: totalWidth,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F2EC),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0.0, end: barWidth),
+                    duration: const Duration(milliseconds: 550),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, animatedWidth, child) {
+                      return Container(
+                        height: 8.0,
+                        width: animatedWidth,
+                        decoration: BoxDecoration(
+                          color: barColor,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  '$percentUsed% ${l10n.budgetUsed}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: QoffaColors.primaryNavy,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  '${monthlyBudget.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")} DA',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: QoffaColors.secondarySage,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
-
 class _PriceContextItem extends StatelessWidget {
   const _PriceContextItem({
     required this.icon,
@@ -975,7 +2619,7 @@ class _PriceContextItem extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            fontFamily: 'Alexandria',
+            fontFamily: 'Inter',
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
             color: color == QoffaColors.skyBlue ? QoffaColors.primaryNavy : color,
@@ -986,55 +2630,4 @@ class _PriceContextItem extends StatelessWidget {
   );
 }
 
-class _QuickAddChip extends StatelessWidget {
-  const _QuickAddChip({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
 
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(QoffaTokens.radiusControls),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: QoffaColors.whiteSurface,
-            borderRadius: BorderRadius.circular(QoffaTokens.radiusControls),
-            border: Border.all(color: QoffaColors.softBorder, width: 1.5),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: QoffaColors.actionGreen, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontFamily: 'Alexandria',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: QoffaColors.primaryNavy,
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Icon(
-                Icons.add_rounded,
-                color: QoffaColors.actionGreen,
-                size: 18,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

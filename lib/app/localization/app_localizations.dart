@@ -66,6 +66,10 @@ class AppLocalizations {
   String get remaining => _v('متبقي', 'restant', 'remaining');
   String get overBudget =>
       _v('فوق الميزانية', 'au-dessus du budget', 'over budget');
+  String get used => _v('مستهلك', 'utilisé', 'used');
+  String get keepItUp => _v('واصل هكذا!', 'Continuez !', 'Keep it up!');
+  String get today => _v('اليوم', 'Aujourd’hui', 'Today');
+  String get yesterday => _v('أمس', 'Hier', 'Yesterday');
   String get projected => _v('المتوقع:', 'Prévision :', 'Projected:');
   String get onTrack => _v(
     'أنت على المسار الصحيح',
@@ -81,6 +85,20 @@ class AppLocalizations {
       _v('آخر النشاطات', 'Activité récente', 'Recent activity');
   String get seeAll => _v('عرض الكل', 'Tout voir', 'See all');
   String get quickActions => _v('وصول سريع', 'Accès rapide', 'Quick actions');
+  String get mostBoughtItem =>
+      _v('الأكثر شراءً', 'Article le plus acheté', 'Most bought item');
+  String get fasterThanLastMonth =>
+      _v('أسرع من الشهر الماضي', 'plus rapide que le mois dernier', 'faster than last month');
+  String get slowerThanLastMonth =>
+      _v('أقل من الشهر الماضي', 'moins que le mois dernier', 'slower than last month');
+  String get fasterThanBudget =>
+      _v('أسرع من وتيرة الميزانية', 'plus rapide que prévu', 'faster than budget pace');
+  String get slowerThanBudget =>
+      _v('أقل من وتيرة الميزانية', 'sous le rythme prévu', 'under budget pace');
+  String get onBudgetPace =>
+      _v('على وتيرة الميزانية', 'au rythme du budget', 'on budget pace');
+  String get noItemsYet =>
+      _v('لا توجد مشتريات بعد', 'Aucun article encore', 'No purchases yet');
   String get addPurchaseTitle =>
       _v('إضافة شراء', 'Ajouter un achat', 'Add purchase');
   String get addPurchaseSubtitle => _v(
@@ -145,8 +163,7 @@ class AppLocalizations {
     'Touchez pour changer le mode de prix',
     'Tap to switch price mode',
   );
-  String get store =>
-      _v('المحل أو السوق', 'Magasin ou marché', 'Store or market');
+  String get store => _v('المتجر', 'Magasin', 'Store');
   String get storeDefault => _v('غير محدد', 'Non défini', 'Not selected');
   String get storeHint => _v(
     'اسم المحل أو السوق',
@@ -157,9 +174,26 @@ class AppLocalizations {
   String get boughtAction => _v('تم الشراء', 'Acheté', 'Bought');
   String get buyLaterAction =>
       _v('شراء لاحقاً', 'Acheter plus tard', 'Buy later');
+  String get addSomethingElse =>
+      _v('إضافة شيء آخر؟', 'Ajouter autre chose ?', 'Add something else?');
+  String get todaySpent =>
+      _v('مصاريف اليوم', 'Dépensé aujourd\'hui', 'Today\'s spend');
+  String get remainingBudget =>
+      _v('المتبقي من الميزانية', 'Budget restant', 'Remaining budget');
+  String get budgetUsed => _v('من الميزانية', 'du budget', 'of budget');
+  String get quickAdd => _v('إضافة سريعة', 'Ajout rapide', 'Quick add');
+  String get refresh => _v('تحديث', 'Actualiser', 'Refresh');
   String get addToListAction =>
       _v('إضافة للقائمة', 'Ajouter à la liste', 'Add to list');
   String get quickAddStaples => _v('منتجات سريعة', 'Ajout rapide', 'Quick add');
+  String get foodName => _v('اسم المادة الغذائية', 'Nom de l\'aliment', 'Food name');
+  String get addItem => _v('إضافة مادة غذائية', 'Ajouter un article', 'Add item');
+  String get recentPickedFoods => _v('العناصر المختارة مؤخراً', 'Aliments récents', 'Recent picked foods');
+  String addNewGroceryItem(String name) => _v(
+    'إضافة "$name" كعنصر بقالة جديد',
+    'Ajouter "$name" comme nouvel article',
+    'Add "$name" as new grocery item',
+  );
   String get scanBarcode =>
       _v('مسح الباركود', 'Scanner le code-barres', 'Scan barcode');
   String get scanBarcodeHint => _v(
@@ -197,6 +231,39 @@ class AppLocalizations {
       _v('تم العثور على المنتج', 'Produit trouvé', 'Product found');
   String get newBarcode =>
       _v('باركود جديد', 'Nouveau code-barres', 'New barcode');
+
+  String get storeName => _v('اسم المتجر', 'Nom du magasin', 'Store name');
+  String get selectStore =>
+      _v('اختر المتجر', 'Choisir un magasin', 'Select store');
+  String get newStore =>
+      _v('متجر جديد', 'Nouveau magasin', 'New store');
+  String get newStoreDetails =>
+      _v('تفاصيل متجر جديد', 'Détails du nouveau magasin', 'New store details');
+  String get storeLocation => _v(
+        'موقع المتجر (الحي / البلدية)',
+        'Localisation (Quartier / Ville)',
+        'Store location (Neighborhood / City)',
+      );
+  String get storeType => _v('نوع المتجر', 'Type de magasin', 'Store type');
+  String get storeRating =>
+      _v('تقييم المتجر', 'Évaluation du magasin', 'Store rating');
+  String get recentPickedStores =>
+      _v('المتاجر المستخدمة مؤخراً', 'Magasins récents', 'Recent picked stores');
+  String get searchOrAddStore => _v(
+        'ابحث أو أضف متجراً...',
+        'Rechercher ou ajouter un magasin...',
+        'Search or add store...',
+      );
+  String get storeNameRequired => _v(
+        'اكتب اسم المتجر أولاً',
+        'Saisissez d’abord le nom du magasin',
+        'Enter store name first',
+      );
+  String addNewStoreNamed(String name) => _v(
+        'إضافة متجر جديد "$name"',
+        'Ajouter le magasin "$name"',
+        'Add new store "$name"',
+      );
 
   String quickProduct(String key) => switch (key) {
     'eggs' => _v('بيض', 'Œufs', 'Eggs'),

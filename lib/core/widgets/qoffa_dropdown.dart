@@ -52,7 +52,7 @@ class QoffaDropdown<T> extends StatelessWidget {
         ),
       ),
       style: TextStyle(
-        fontFamily: 'Alexandria',
+        fontFamily: 'Inter',
         fontSize: 14,
         fontWeight: FontWeight.w700,
         color: colors.onSurface,
@@ -127,7 +127,7 @@ class QoffaPickerField extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            fontFamily: 'Alexandria',
+            fontFamily: 'Inter',
             fontSize: 14,
             fontWeight: FontWeight.w700,
             color: value.isEmpty ? QoffaColors.secondarySage : colors.onSurface,

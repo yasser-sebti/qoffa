@@ -28,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? _openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   static QueryExecutor _openConnection() {
     return driftDatabase(name: 'qoffa_local');
@@ -41,6 +41,12 @@ class AppDatabase extends _$AppDatabase {
         await m.createAll();
         // Seed default initial categories and profile
         await _seedInitialData();
+      },
+      onUpgrade: (m, from, to) async {
+        if (from < 2) {
+          await m.addColumn(stores, stores.storeType);
+          await m.addColumn(stores, stores.rating);
+        }
       },
     );
   }

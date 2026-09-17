@@ -111,7 +111,7 @@ class _BarcodeScannerModalState extends State<BarcodeScannerModal> {
               l10n.scanBarcodeHint,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Alexandria',
+                fontFamily: 'Inter',
                 fontSize: 13,
                 color: Colors.white70,
               ),

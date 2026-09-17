@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' hide Column;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -8,6 +9,7 @@ import 'package:qoffa/app/theme/qoffa_theme.dart';
 import 'package:qoffa/core/database/app_database.dart';
 import 'package:qoffa/core/database/database_provider.dart';
 import 'package:qoffa/core/widgets/top_toast_notification.dart';
+import 'package:qoffa/core/widgets/qoffa_quantity_selector.dart';
 import 'package:qoffa/features/calendar/presentation/calendar_screen.dart';
 import 'package:qoffa/features/home/presentation/home_screen.dart';
 import 'package:qoffa/features/later_buy/presentation/later_buy_screen.dart';
@@ -68,7 +70,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     });
 
-    testWidgets('AddPurchaseScreen renders form and quick staples', (
+    testWidgets('AddPurchaseScreen renders item row, opens bottom sheet, and can select & clear item', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -79,16 +81,156 @@ void main() {
 
       expect(find.byType(AddPurchaseScreen), findsOneWidget);
       expect(find.text('إضافة شراء'), findsOneWidget);
-      expect(find.text('تم الشراء'), findsOneWidget);
-      expect(find.text('شراء لاحقاً'), findsOneWidget);
-      expect(find.text('إضافة للقائمة'), findsOneWidget);
+      // Row button to add an item
+      expect(find.text('إضافة مادة غذائية'), findsOneWidget);
 
-      expect(find.text('بيض'), findsOneWidget);
-      expect(find.text('خبز'), findsOneWidget);
+      // Tap to open bottom sheet
+      await tester.tap(find.text('إضافة مادة غذائية'));
+      await tester.pumpAndSettle();
+
+      // Verify bottom sheet appears with food name bar and recent foods
+      expect(find.text('اسم المادة الغذائية'), findsOneWidget);
+      expect(find.text('العناصر المختارة مؤخراً'), findsOneWidget);
+      expect(find.text('Candia Milk 1L'), findsOneWidget);
+
+      // Tap Candia Milk 1L from recent picked foods
+      await tester.tap(find.text('Candia Milk 1L').first);
+      await tester.pumpAndSettle();
+
+      // Selected item row now appears with Candia Milk 1L and remove button
+      expect(find.text('Candia Milk 1L'), findsOneWidget);
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+
+      // Tap remove button
+      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.pumpAndSettle();
+
+      // Returns to Add item row button
+      expect(find.text('إضافة مادة غذائية'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 50));
     });
+
+    testWidgets(
+      'AddPurchaseScreen price calculator updates dynamically on price change',
+      (tester) async {
+        await db.into(db.products).insert(
+              ProductsCompanion.insert(
+                id: 'prod_candia',
+                name: 'Candia Milk 1L',
+                normalizedName: 'candia milk 1l',
+                preferredUnitId: const Value('piece'),
+                lastPriceDzd: const Value(145),
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
+              ),
+            );
+
+        await tester.pumpWidget(
+          createTestableWidget(
+            child: const AddPurchaseScreen(initialProductId: 'prod_candia'),
+            db: db,
+            locale: const Locale('en'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Last price'), findsOneWidget);
+        expect(find.text('145 DA'), findsWidgets);
+        expect(find.text('Today'), findsOneWidget);
+        expect(find.text('0 DA'), findsOneWidget);
+
+        // Tap Today to edit price
+        await tester.tap(find.text('Today'));
+        await tester.pumpAndSettle();
+
+        final priceField = find.byType(TextField).last;
+        await tester.enterText(priceField, '165');
+        await tester.tap(find.text('Confirm'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('+20 DA'), findsOneWidget);
+        expect(find.byIcon(Icons.trending_up_rounded), findsOneWidget);
+
+        // Tap Today again to enter 125
+        await tester.tap(find.text('Today'));
+        await tester.pumpAndSettle();
+
+        final priceField2 = find.byType(TextField).last;
+        await tester.enterText(priceField2, '125');
+        await tester.tap(find.text('Confirm'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('-20 DA'), findsOneWidget);
+        expect(find.byIcon(Icons.trending_down_rounded), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump(const Duration(milliseconds: 50));
+      },
+    );
+
+    testWidgets(
+      'AddPurchaseScreen quantity controls and custom unit dropdown work correctly',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestableWidget(
+            child: const AddPurchaseScreen(),
+            db: db,
+            locale: const Locale('en'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Verify Quantity and Unit controls are rendered
+        expect(find.text('Quantity'), findsOneWidget);
+        expect(find.text('Unit'), findsOneWidget);
+        expect(find.text('1'), findsOneWidget);
+
+        // Tap plus to increment quantity to 2
+        await tester.tap(
+          find.descendant(
+            of: find.byType(QoffaQuantitySelector),
+            matching: find.byIcon(Icons.add_rounded),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('2'), findsOneWidget);
+
+        // Tap minus to decrement to 1
+        await tester.tap(find.byIcon(Icons.remove_rounded));
+        await tester.pumpAndSettle();
+        expect(find.text('1'), findsOneWidget);
+
+        // Tap minus again to decrement to 0 (minimum threshold)
+        await tester.tap(find.byIcon(Icons.remove_rounded));
+        await tester.pumpAndSettle();
+        expect(find.text('0'), findsOneWidget);
+
+        // Tap minus again; stays at 0
+        await tester.tap(find.byIcon(Icons.remove_rounded));
+        await tester.pumpAndSettle();
+        expect(find.text('0'), findsOneWidget);
+
+        // Open custom Unit dropdown
+        expect(find.text('Piece'), findsOneWidget);
+        await tester.tap(find.text('Piece'));
+        await tester.pumpAndSettle();
+
+        // Check that custom unit sheet options appear
+        expect(find.text('Kilogram'), findsOneWidget);
+
+        // Select Kilogram
+        await tester.tap(find.text('Kilogram'));
+        await tester.pumpAndSettle();
+
+        // Selected unit is now Kilogram
+        expect(find.text('Kilogram'), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox());
+        await tester.pump(const Duration(milliseconds: 50));
+      },
+    );
 
     testWidgets('LaterBuyScreen renders status tabs and header', (
       tester,

@@ -193,7 +193,7 @@ class _TopToastLayerState extends State<TopToastLayer>
                                   Text(
                                     toast?.message ?? '',
                                     style: const TextStyle(
-                                      fontFamily: 'Alexandria',
+                                      fontFamily: 'Inter',
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: QoffaColors.primaryNavy,
@@ -224,7 +224,7 @@ class _TopToastLayerState extends State<TopToastLayer>
                                   toast?.actionLabel ??
                                       AppLocalizations.of(context).undo,
                                   style: const TextStyle(
-                                    fontFamily: 'Alexandria',
+                                    fontFamily: 'Inter',
                                     fontWeight: FontWeight.w800,
                                     fontSize: 13,
                                   ),

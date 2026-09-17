@@ -25,6 +25,23 @@ void main() {
     // Verify root QoffaApp renders
     expect(find.byType(QoffaApp), findsOneWidget);
 
+    // Verify bottom navigation bar items are rendered
+    expect(find.text('الرئيسية'), findsOneWidget);
+    expect(find.text('التقويم'), findsOneWidget);
+    expect(find.text('إضافة'), findsOneWidget);
+    expect(find.text('لاحقاً'), findsOneWidget);
+    expect(find.text('الدفتر'), findsOneWidget);
+
+    // Switch tab to Calendar
+    await tester.tap(find.text('التقويم'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // Switch tab to Notebook
+    await tester.tap(find.text('الدفتر'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
     await inMemoryDb.close();
   });
 }

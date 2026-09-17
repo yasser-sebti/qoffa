@@ -88,7 +88,7 @@ class ProductDetailsModal extends ConsumerWidget {
                           Text(
                             product.brand as String,
                             style: const TextStyle(
-                              fontFamily: 'Alexandria',
+                              fontFamily: 'Inter',
                               fontSize: 13,
                               color: QoffaColors.secondarySage,
                             ),
@@ -125,7 +125,7 @@ class ProductDetailsModal extends ConsumerWidget {
                         Text(
                           l10n.lastPrice,
                           style: const TextStyle(
-                            fontFamily: 'Alexandria',
+                            fontFamily: 'Inter',
                             fontSize: 12,
                             color: QoffaColors.secondarySage,
                           ),
@@ -154,7 +154,7 @@ class ProductDetailsModal extends ConsumerWidget {
                         Text(
                           l10n.typicalRange,
                           style: const TextStyle(
-                            fontFamily: 'Alexandria',
+                            fontFamily: 'Inter',
                             fontSize: 12,
                             color: QoffaColors.secondarySage,
                           ),
@@ -196,7 +196,7 @@ class ProductDetailsModal extends ConsumerWidget {
                         child: Text(
                           l10n.noPurchaseHistory,
                           style: const TextStyle(
-                            fontFamily: 'Alexandria',
+                            fontFamily: 'Inter',
                             color: QoffaColors.secondarySage,
                           ),
                         ),
@@ -223,7 +223,7 @@ class ProductDetailsModal extends ConsumerWidget {
                               subtitle: Text(
                                 '${p.quantity} ${p.unitId} · ${p.localDate}',
                                 style: const TextStyle(
-                                  fontFamily: 'Alexandria',
+                                  fontFamily: 'Inter',
                                   fontSize: 12,
                                   color: QoffaColors.secondarySage,
                                 ),
@@ -249,7 +249,7 @@ class ProductDetailsModal extends ConsumerWidget {
                 icon: Icons.add_shopping_cart_rounded,
                 onTap: () {
                   Navigator.of(context).pop();
-                  context.push('/add-purchase?productId=$productId');
+                  context.go('/add-purchase?productId=$productId');
                 },
               ),
             ],

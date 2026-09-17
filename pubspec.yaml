@@ -41,6 +41,7 @@ flutter:
   assets:
     - assets/fonts/
     - assets/icons/
+    - assets/images/
 
   fonts:
     - family: Hero Sandwich Pro
@@ -49,3 +50,6 @@ flutter:
     - family: Alexandria
       fonts:
         - asset: assets/fonts/Alexandria-VariableFont_wght.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Variable.ttf

@@ -44,13 +44,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('Budget du mois'), findsOneWidget);
-    expect(find.text('Accès rapide'), findsOneWidget);
+    expect(find.text('Article le plus acheté'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 20));
   });
 
-  testWidgets('English purchase form scrolls without clipping', (tester) async {
+  testWidgets('English purchase screen renders without clipping', (tester) async {
     useCompactSurface(tester, textScale: 1.3);
     await tester.pumpWidget(
       createTestableWidget(
@@ -63,8 +63,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Add purchase'), findsOneWidget);
-    expect(find.text('Bought'), findsOneWidget);
-    expect(find.text('Quick add'), findsOneWidget);
+    expect(find.text('Add item'), findsOneWidget);
+    expect(find.text('Last price'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 20));

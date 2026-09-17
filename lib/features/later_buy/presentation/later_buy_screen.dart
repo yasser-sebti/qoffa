@@ -12,6 +12,7 @@ import '../../../core/widgets/mint_background_scaffold.dart';
 import '../../../core/widgets/qoffa_button.dart';
 import '../../../core/widgets/qoffa_layout.dart';
 import '../../../core/widgets/qoffa_motion.dart';
+import '../../../core/widgets/qoffa_tactile_pressable.dart';
 import '../../insights/domain/services/was_it_worth_waiting_service.dart';
 import '../data/later_buy_repository.dart';
 
@@ -67,7 +68,7 @@ class _LaterBuyScreenState extends ConsumerState<LaterBuyScreen> {
                             Text(
                               l10n.laterBuySubtitle,
                               style: const TextStyle(
-                                fontFamily: 'Alexandria',
+                                fontFamily: 'Inter',
                                 fontSize: 13,
                                 color: QoffaColors.secondarySage,
                               ),
@@ -75,42 +76,63 @@ class _LaterBuyScreenState extends ConsumerState<LaterBuyScreen> {
                           ],
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: QoffaColors.whiteSurface,
-                          borderRadius: BorderRadius.circular(
-                            QoffaTokens.radiusPill,
-                          ),
-                          border: Border.all(color: QoffaColors.softBorder),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.schedule_rounded,
-                              color: QoffaColors.actionGreen,
-                              size: 18,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
                             ),
-                            const SizedBox(width: 6),
-                            AnimatedSwitcher(
-                              duration: QoffaTokens.motionMedium,
-                              child: Text(
-                                '$pendingCount ${l10n.pendingCount}',
-                                key: ValueKey(pendingCount),
-                                style: const TextStyle(
-                                  fontFamily: 'Alexandria',
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: QoffaColors.primaryNavy,
+                            decoration: BoxDecoration(
+                              color: QoffaColors.whiteSurface,
+                              borderRadius: BorderRadius.circular(
+                                QoffaTokens.radiusPill,
+                              ),
+                              border: Border.all(color: QoffaColors.softBorder),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.schedule_rounded,
+                                  color: QoffaColors.actionGreen,
+                                  size: 18,
                                 ),
+                                const SizedBox(width: 6),
+                                AnimatedSwitcher(
+                                  duration: QoffaTokens.motionMedium,
+                                  child: Text(
+                                    '$pendingCount ${l10n.pendingCount}',
+                                    key: ValueKey(pendingCount),
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: QoffaColors.primaryNavy,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Semantics(
+                            button: true,
+                            label: l10n.navAdd,
+                            child: QoffaTactilePressable.filled(
+                              width: 44,
+                              height: 44,
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () => context.go('/add-purchase'),
+                              child: const Icon(
+                                Icons.add_rounded,
+                                size: 26,
+                                color: Colors.white,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -152,7 +174,7 @@ class _LaterBuyScreenState extends ConsumerState<LaterBuyScreen> {
                                   ? l10n.navAdd
                                   : null,
                               onAction: _activeTab == 'active'
-                                  ? () => context.push('/add-purchase')
+                                  ? () => context.go('/add-purchase')
                                   : null,
                             ),
                           ],
@@ -246,7 +268,7 @@ class _LaterBuyScreenState extends ConsumerState<LaterBuyScreen> {
                 Text(
                   '${l10n.observedPrice}: ${item.observedPriceDzd} DA',
                   style: const TextStyle(
-                    fontFamily: 'Alexandria',
+                    fontFamily: 'Inter',
                     color: QoffaColors.secondarySage,
                   ),
                 ),
@@ -394,7 +416,7 @@ class _StatusTabs extends StatelessWidget {
                     tab.$2,
                     maxLines: 1,
                     style: TextStyle(
-                      fontFamily: 'Alexandria',
+                      fontFamily: 'Inter',
                       fontSize: 12.5,
                       fontWeight: FontWeight.w800,
                       color: selected ? Colors.white : QoffaColors.primaryNavy,
@@ -466,7 +488,7 @@ class _LaterBuyCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontFamily: 'Alexandria',
+                          fontFamily: 'Inter',
                           fontSize: 12,
                           color: QoffaColors.secondarySage,
                         ),
@@ -528,7 +550,7 @@ class _LaterBuyCard extends StatelessWidget {
                           dateLocale,
                         ).format(item.reminderAt!.toLocal()),
                         style: const TextStyle(
-                          fontFamily: 'Alexandria',
+                          fontFamily: 'Inter',
                           fontSize: 12,
                           color: QoffaColors.secondarySage,
                         ),
@@ -573,7 +595,7 @@ class _PriceMetric extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(
-          fontFamily: 'Alexandria',
+          fontFamily: 'Inter',
           fontSize: 11,
           color: QoffaColors.secondarySage,
         ),

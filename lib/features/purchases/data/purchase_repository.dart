@@ -13,6 +13,8 @@ abstract class PurchaseRepository {
   Stream<List<Purchase>> watchRecentPurchases({int limit = 10});
   Stream<List<PurchaseListEntry>> watchRecentPurchaseEntries({int limit = 10});
   Stream<DzdAmount> watchMonthlyTotal(int year, int month);
+  Stream<MostUsedProductResult?> watchMostUsedProduct();
+  Future<List<Product>> getMostUsedProducts({int limit = 10});
   Future<List<Purchase>> getPurchasesForProduct(String productId);
   Future<Purchase> createPurchase({
     required String productId,
@@ -27,6 +29,20 @@ abstract class PurchaseRepository {
   });
   Future<void> updatePurchase(Purchase purchase);
   Future<void> deletePurchase(String id);
+}
+
+class MostUsedProductResult {
+  const MostUsedProductResult({
+    required this.productId,
+    required this.productName,
+    required this.purchaseCount,
+    this.categoryId,
+  });
+
+  final String productId;
+  final String productName;
+  final int purchaseCount;
+  final String? categoryId;
 }
 
 class PurchaseListEntry {
@@ -212,6 +228,75 @@ class DriftPurchaseRepository implements PurchaseRepository {
   }
 
   @override
+  Stream<MostUsedProductResult?> watchMostUsedProduct() {
+    final query = _db.select(_db.purchases).join([
+      innerJoin(
+        _db.products,
+        _db.products.id.equalsExp(_db.purchases.productId),
+      ),
+    ])..where(_db.purchases.deletedAt.isNull());
+
+    return query.watch().map((rows) {
+      if (rows.isEmpty) return null;
+      final frequencyMap = <String, ({Product product, int count})>{};
+      for (final row in rows) {
+        final product = row.readTable(_db.products);
+        final current = frequencyMap[product.id];
+        if (current == null) {
+          frequencyMap[product.id] = (product: product, count: 1);
+        } else {
+          frequencyMap[product.id] = (
+            product: product,
+            count: current.count + 1,
+          );
+        }
+      }
+      if (frequencyMap.isEmpty) return null;
+      final sorted = frequencyMap.values.toList()
+        ..sort((a, b) => b.count.compareTo(a.count));
+      final top = sorted.first;
+      return MostUsedProductResult(
+        productId: top.product.id,
+        productName: top.product.name,
+        purchaseCount: top.count,
+        categoryId: top.product.categoryId,
+      );
+    });
+  }
+
+  @override
+  Future<List<Product>> getMostUsedProducts({int limit = 10}) async {
+    final query = _db.select(_db.purchases).join([
+      innerJoin(
+        _db.products,
+        _db.products.id.equalsExp(_db.purchases.productId),
+      ),
+    ])..where(_db.purchases.deletedAt.isNull());
+
+    final rows = await query.get();
+    if (rows.isEmpty) return [];
+
+    final frequencyMap = <String, ({Product product, int count})>{};
+    for (final row in rows) {
+      final product = row.readTable(_db.products);
+      final current = frequencyMap[product.id];
+      if (current == null) {
+        frequencyMap[product.id] = (product: product, count: 1);
+      } else {
+        frequencyMap[product.id] = (
+          product: product,
+          count: current.count + 1,
+        );
+      }
+    }
+
+    final sorted = frequencyMap.values.toList()
+      ..sort((a, b) => b.count.compareTo(a.count));
+
+    return sorted.map((e) => e.product).take(limit).toList();
+  }
+
+  @override
   Future<void> deletePurchase(String id) async {
     await (_db.update(_db.purchases)..where((t) => t.id.equals(id))).write(
       PurchasesCompanion(deletedAt: Value(DateTime.now().toUtc())),
@@ -237,3 +322,22 @@ final recentPurchaseEntriesProvider =
           .watch(purchaseRepositoryProvider)
           .watchRecentPurchaseEntries(limit: limit);
     });
+
+final mostUsedProductProvider = StreamProvider<MostUsedProductResult?>((ref) {
+  return ref.watch(purchaseRepositoryProvider).watchMostUsedProduct();
+});
+
+final dailyTotalProvider =
+    StreamProvider.family<DzdAmount, String>((ref, localDate) {
+  return ref
+      .watch(purchaseRepositoryProvider)
+      .watchPurchasesForDate(localDate)
+      .map((purchases) {
+    int sum = 0;
+    for (final p in purchases) {
+      sum += p.totalDzd;
+    }
+    return DzdAmount(sum);
+  });
+});
+
