@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../app/theme/qoffa_tokens.dart';
 
@@ -20,13 +21,24 @@ class QoffaReveal extends StatefulWidget {
 
 class _QoffaRevealState extends State<QoffaReveal> {
   bool _visible = false;
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    Future<void>.delayed(widget.delay, () {
-      if (mounted) setState(() => _visible = true);
-    });
+    if (widget.delay == Duration.zero) {
+      _visible = true;
+    } else {
+      _timer = Timer(widget.delay, () {
+        if (mounted) setState(() => _visible = true);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override

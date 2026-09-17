@@ -669,22 +669,36 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       IconButton(
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(
+                                          minWidth: 32,
+                                          minHeight: 32,
+                                        ),
                                         icon: const Icon(
                                           Icons.remove_rounded,
                                           color: QoffaColors.actionGreen,
                                         ),
                                         onPressed: _decrementQty,
                                       ),
-                                      Text(
-                                        _quantity.toInt().toString(),
-                                        style: const TextStyle(
-                                          fontFamily: 'Hero Sandwich Pro',
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w900,
-                                          color: QoffaColors.primaryNavy,
+                                      Expanded(
+                                        child: Center(
+                                          child: Text(
+                                            _quantity.toInt().toString(),
+                                            style: const TextStyle(
+                                              fontFamily: 'Hero Sandwich Pro',
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.w900,
+                                              color: QoffaColors.primaryNavy,
+                                            ),
+                                          ),
                                         ),
                                       ),
                                       IconButton(
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(
+                                          minWidth: 32,
+                                          minHeight: 32,
+                                        ),
                                         icon: const Icon(
                                           Icons.add_rounded,
                                           color: QoffaColors.actionGreen,
@@ -955,13 +969,17 @@ class _PriceContextItem extends StatelessWidget {
     children: [
       Icon(icon, color: color, size: 19),
       const SizedBox(width: 7),
-      Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'Alexandria',
-          fontSize: 12.5,
-          fontWeight: FontWeight.w700,
-          color: color == QoffaColors.skyBlue ? QoffaColors.primaryNavy : color,
+      Flexible(
+        child: Text(
+          text,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontFamily: 'Alexandria',
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: color == QoffaColors.skyBlue ? QoffaColors.primaryNavy : color,
+          ),
         ),
       ),
     ],

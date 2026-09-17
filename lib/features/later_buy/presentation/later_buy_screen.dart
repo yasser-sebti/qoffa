@@ -28,13 +28,8 @@ class _LaterBuyScreenState extends ConsumerState<LaterBuyScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final repo = ref.watch(laterBuyRepositoryProvider);
-    final entriesAsync = ref.watch(
-      StreamProvider((ref) => repo.watchEntriesByStatus(_activeTab)),
-    );
-    final pendingAsync = ref.watch(
-      StreamProvider((ref) => repo.watchPendingCount()),
-    );
+    final entriesAsync = ref.watch(laterBuyEntriesProvider(_activeTab));
+    final pendingAsync = ref.watch(laterBuyPendingCountProvider);
     final pendingCount = pendingAsync.value ?? 0;
 
     return MintBackgroundScaffold(

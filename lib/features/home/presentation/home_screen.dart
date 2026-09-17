@@ -22,22 +22,13 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final now = DateTime.now();
-    final purchaseRepo = ref.watch(purchaseRepositoryProvider);
-    final settingsRepo = ref.watch(settingsRepositoryProvider);
-
     final monthlyTotal = ref.watch(
-      StreamProvider(
-        (ref) => purchaseRepo.watchMonthlyTotal(now.year, now.month),
-      ),
+      monthlyTotalProvider((year: now.year, month: now.month)),
     );
     final recentPurchases = ref.watch(
-      StreamProvider(
-        (ref) => purchaseRepo.watchRecentPurchaseEntries(limit: 5),
-      ),
+      recentPurchaseEntriesProvider(5),
     );
-    final profile = ref.watch(
-      StreamProvider((ref) => settingsRepo.watchProfile()),
-    );
+    final profile = ref.watch(userProfileProvider);
 
     final spent = monthlyTotal.value ?? DzdAmount.zero;
     final budget = DzdAmount(profile.value?.monthlyBudgetDzd ?? 60000);

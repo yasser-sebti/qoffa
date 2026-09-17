@@ -298,6 +298,23 @@ class AppLocalizations {
   String get noteType => _v('نوع الملاحظة', 'Type de note', 'Note type');
   String get noteSaved =>
       _v('تم حفظ الملاحظة', 'Note enregistrée', 'Note saved');
+  String get editNote => _v('تعديل الملاحظة', 'Modifier la note', 'Edit note');
+  String get deleteNote => _v('حذف الملاحظة', 'Supprimer la note', 'Delete note');
+  String get deleteNoteConfirmTitle =>
+      _v('حذف الملاحظة؟', 'Supprimer cette note ?', 'Delete note?');
+  String get deleteNoteConfirmMessage => _v(
+    'هل أنت متأكد من رغبتك في حذف هذه الملاحظة؟ لا يمكن التراجع عن ذلك.',
+    'Voulez-vous vraiment supprimer cette note ? Cette action est irréversible.',
+    'Are you sure you want to delete this note? This cannot be undone.',
+  );
+  String get noteUpdated =>
+      _v('تم تحديث الملاحظة', 'Note mise à jour', 'Note updated');
+  String get noteDeleted =>
+      _v('تم حذف الملاحظة', 'Note supprimée', 'Note deleted');
+  String get lastEdited =>
+      _v('آخر تعديل', 'Dernière modification', 'Last edited');
+  String get createdAtLabel =>
+      _v('تاريخ الإنشاء', 'Date de création', 'Created');
   String get allNotes => _v('الكل', 'Toutes', 'All');
   String get noNotesTitle =>
       _v('دفترك جاهز', 'Votre carnet est prêt', 'Your notebook is ready');

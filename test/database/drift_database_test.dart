@@ -146,6 +146,45 @@ void main() {
       expect(allNotes.first.id, note.id);
     });
 
+    test('updates note title, body, and type with updated timestamp', () async {
+      final now = DateTime.now().subtract(const Duration(minutes: 5));
+      final note = await notebookRepo.createNote(
+        title: 'Original Title',
+        body: 'Original Body',
+        noteType: 'food_diary',
+        eventAt: now,
+      );
+
+      final updated = note.copyWith(
+        title: 'Edited Title',
+        body: 'Edited Body',
+        noteType: 'meal_idea',
+      );
+      await notebookRepo.updateNote(updated);
+
+      final notes = await notebookRepo.watchAllNotes().first;
+      expect(notes.first.title, 'Edited Title');
+      expect(notes.first.body, 'Edited Body');
+      expect(notes.first.noteType, 'meal_idea');
+      expect(notes.first.updatedAt.compareTo(note.createdAt) >= 0, isTrue);
+    });
+
+    test('deletes note (soft-delete filters out from active notes)', () async {
+      final note = await notebookRepo.createNote(
+        title: 'To Be Deleted',
+        body: 'Body text',
+        eventAt: DateTime.now(),
+      );
+
+      var notes = await notebookRepo.watchAllNotes().first;
+      expect(notes, hasLength(1));
+
+      await notebookRepo.deleteNote(note.id);
+
+      notes = await notebookRepo.watchAllNotes().first;
+      expect(notes, isEmpty);
+    });
+
     test('updates settings and exports complete local backup JSON', () async {
       await settingsRepo.updateMonthlyBudget(75000);
       await settingsRepo.updateLanguage('fr');

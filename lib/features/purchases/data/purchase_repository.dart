@@ -84,7 +84,7 @@ class DriftPurchaseRepository implements PurchaseRepository {
   Stream<List<PurchaseListEntry>> watchRecentPurchaseEntries({int limit = 10}) {
     final query =
         _db.select(_db.purchases).join([
-            innerJoin(
+            leftOuterJoin(
               _db.products,
               _db.products.id.equalsExp(_db.purchases.productId),
             ),
@@ -102,7 +102,7 @@ class DriftPurchaseRepository implements PurchaseRepository {
           .map(
             (row) => PurchaseListEntry(
               purchase: row.readTable(_db.purchases),
-              productName: row.readTable(_db.products).name,
+              productName: row.readTableOrNull(_db.products)?.name ?? '',
               storeName: row.readTableOrNull(_db.stores)?.name,
             ),
           )
@@ -223,3 +223,17 @@ final purchaseRepositoryProvider = Provider<PurchaseRepository>((ref) {
   final db = ref.watch(databaseProvider);
   return DriftPurchaseRepository(db);
 });
+
+final monthlyTotalProvider =
+    StreamProvider.family<DzdAmount, ({int year, int month})>((ref, period) {
+      return ref
+          .watch(purchaseRepositoryProvider)
+          .watchMonthlyTotal(period.year, period.month);
+    });
+
+final recentPurchaseEntriesProvider =
+    StreamProvider.family<List<PurchaseListEntry>, int>((ref, limit) {
+      return ref
+          .watch(purchaseRepositoryProvider)
+          .watchRecentPurchaseEntries(limit: limit);
+    });

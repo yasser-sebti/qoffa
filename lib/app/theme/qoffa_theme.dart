@@ -97,6 +97,27 @@ class QoffaTheme {
         color: QoffaColors.softBorder,
         thickness: 1,
       ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: QoffaColors.whiteSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(QoffaTokens.radiusFields),
+          side: const BorderSide(color: QoffaColors.softBorder, width: 1.4),
+        ),
+      ),
+      dropdownMenuTheme: DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          elevation: const WidgetStatePropertyAll(0),
+          backgroundColor:
+              const WidgetStatePropertyAll(QoffaColors.whiteSurface),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(QoffaTokens.radiusFields),
+              side: const BorderSide(color: QoffaColors.softBorder, width: 1.4),
+            ),
+          ),
+        ),
+      ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: QoffaColors.actionGreen,
       ),
@@ -188,6 +209,27 @@ class QoffaTheme {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(QoffaTokens.radiusFields),
           borderSide: const BorderSide(color: QoffaColors.brandGreen, width: 2),
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: QoffaColors.darkSurfaceElevated,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(QoffaTokens.radiusFields),
+          side: const BorderSide(color: QoffaColors.darkBorder, width: 1.4),
+        ),
+      ),
+      dropdownMenuTheme: DropdownMenuThemeData(
+        menuStyle: MenuStyle(
+          elevation: const WidgetStatePropertyAll(0),
+          backgroundColor:
+              const WidgetStatePropertyAll(QoffaColors.darkSurfaceElevated),
+          shape: WidgetStatePropertyAll(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(QoffaTokens.radiusFields),
+              side: const BorderSide(color: QoffaColors.darkBorder, width: 1.4),
+            ),
+          ),
         ),
       ),
       appBarTheme: const AppBarTheme(

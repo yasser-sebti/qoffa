@@ -231,3 +231,7 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
   final db = ref.watch(databaseProvider);
   return DriftSettingsRepository(db);
 });
+
+final userProfileProvider = StreamProvider<Profile?>((ref) {
+  return ref.watch(settingsRepositoryProvider).watchProfile();
+});

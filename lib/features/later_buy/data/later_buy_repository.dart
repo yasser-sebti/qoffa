@@ -63,7 +63,7 @@ class DriftLaterBuyRepository implements LaterBuyRepository {
   Stream<List<LaterBuyListEntry>> watchEntriesByStatus(String status) {
     final query =
         _db.select(_db.laterBuyItems).join([
-            innerJoin(
+            leftOuterJoin(
               _db.products,
               _db.products.id.equalsExp(_db.laterBuyItems.productId),
             ),
@@ -83,7 +83,7 @@ class DriftLaterBuyRepository implements LaterBuyRepository {
           .map(
             (row) => LaterBuyListEntry(
               item: row.readTable(_db.laterBuyItems),
-              productName: row.readTable(_db.products).name,
+              productName: row.readTableOrNull(_db.products)?.name ?? '',
               storeName: row.readTableOrNull(_db.stores)?.name,
             ),
           )
@@ -201,4 +201,13 @@ final laterBuyRepositoryProvider = Provider<LaterBuyRepository>((ref) {
   final db = ref.watch(databaseProvider);
   final purchaseRepo = ref.watch(purchaseRepositoryProvider);
   return DriftLaterBuyRepository(db, purchaseRepo);
+});
+
+final laterBuyEntriesProvider =
+    StreamProvider.family<List<LaterBuyListEntry>, String>((ref, status) {
+      return ref.watch(laterBuyRepositoryProvider).watchEntriesByStatus(status);
+    });
+
+final laterBuyPendingCountProvider = StreamProvider<int>((ref) {
+  return ref.watch(laterBuyRepositoryProvider).watchPendingCount();
 });

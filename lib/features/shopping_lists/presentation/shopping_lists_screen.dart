@@ -83,9 +83,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final repo = ref.watch(shoppingListRepositoryProvider);
-    final listsAsync = ref.watch(
-      StreamProvider((ref) => repo.watchActiveLists()),
-    );
+    final listsAsync = ref.watch(activeShoppingListsProvider);
 
     return MintBackgroundScaffold(
       child: SafeArea(
@@ -248,9 +246,7 @@ class _ShoppingListContentViewState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final itemsAsync = ref.watch(
-      StreamProvider((ref) => widget.repo.watchListItems(widget.list.id)),
-    );
+    final itemsAsync = ref.watch(shoppingListItemsProvider(widget.list.id));
 
     return Column(
       children: [

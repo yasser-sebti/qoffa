@@ -11,6 +11,7 @@ import 'package:qoffa/core/widgets/top_toast_notification.dart';
 import 'package:qoffa/features/calendar/presentation/calendar_screen.dart';
 import 'package:qoffa/features/home/presentation/home_screen.dart';
 import 'package:qoffa/features/later_buy/presentation/later_buy_screen.dart';
+import 'package:qoffa/features/notebook/data/notebook_repository.dart';
 import 'package:qoffa/features/notebook/presentation/notebook_screen.dart';
 import 'package:qoffa/features/purchases/presentation/add_purchase_screen.dart';
 import 'package:qoffa/features/settings/presentation/settings_screen.dart';
@@ -57,10 +58,11 @@ void main() {
         createTestableWidget(child: const HomeScreen(), db: db),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(HomeScreen), findsOneWidget);
       expect(find.text('ميزانية الشهر'), findsOneWidget);
+      expect(find.text('قفتك ما زالت فارغة'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 50));
@@ -95,12 +97,13 @@ void main() {
         createTestableWidget(child: const LaterBuyScreen(), db: db),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(LaterBuyScreen), findsOneWidget);
       expect(find.textContaining('نشطة'), findsOneWidget);
       expect(find.text('تم شراؤها'), findsOneWidget);
       expect(find.text('متخطاة'), findsOneWidget);
+      expect(find.text('لا شيء مؤجل الآن'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 50));
@@ -129,11 +132,42 @@ void main() {
         createTestableWidget(child: const NotebookScreen(), db: db),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.byType(NotebookScreen), findsOneWidget);
       expect(find.text('دفتر الأغذية'), findsOneWidget);
       expect(find.byIcon(Icons.add_rounded), findsOneWidget);
+      expect(find.text('دفترك جاهز'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(milliseconds: 50));
+    });
+
+    testWidgets('NotebookScreen can open edit sheet for an existing note', (
+      tester,
+    ) async {
+      final repo = DriftNotebookRepository(db);
+      await repo.createNote(
+        title: 'وصفة شربة فريك',
+        body: 'المقادير: فريك، لحم، حمص، كزبرة، نعناع، طماطم مصبرة.',
+        noteType: 'meal_idea',
+        eventAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        createTestableWidget(child: const NotebookScreen(), db: db),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('وصفة شربة فريك'), findsOneWidget);
+
+      await tester.tap(find.text('وصفة شربة فريك'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('تعديل الملاحظة'), findsOneWidget);
+      expect(find.text('حفظ'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 50));

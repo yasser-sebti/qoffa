@@ -119,3 +119,12 @@ final shoppingListRepositoryProvider = Provider<ShoppingListRepository>((ref) {
   final db = ref.watch(databaseProvider);
   return DriftShoppingListRepository(db);
 });
+
+final activeShoppingListsProvider = StreamProvider<List<ShoppingList>>((ref) {
+  return ref.watch(shoppingListRepositoryProvider).watchActiveLists();
+});
+
+final shoppingListItemsProvider =
+    StreamProvider.family<List<ShoppingListItem>, String>((ref, listId) {
+      return ref.watch(shoppingListRepositoryProvider).watchListItems(listId);
+    });

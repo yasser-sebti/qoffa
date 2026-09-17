@@ -128,3 +128,7 @@ final notebookRepositoryProvider = Provider<NotebookRepository>((ref) {
   final db = ref.watch(databaseProvider);
   return DriftNotebookRepository(db);
 });
+
+final allNotesProvider = StreamProvider<List<Note>>((ref) {
+  return ref.watch(notebookRepositoryProvider).watchAllNotes();
+});

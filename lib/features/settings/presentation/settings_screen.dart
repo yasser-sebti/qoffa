@@ -22,9 +22,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final settingsRepo = ref.watch(settingsRepositoryProvider);
-    final profileAsync = ref.watch(
-      StreamProvider((ref) => settingsRepo.watchProfile()),
-    );
+    final profileAsync = ref.watch(userProfileProvider);
     final currentLocale = ref.watch(localeNotifierProvider);
 
     final profile = profileAsync.value;
