@@ -40,16 +40,19 @@ flutter:
 
   assets:
     - assets/fonts/
+    - assets/fonts/Hero Sandwich Pro/
+    - assets/fonts/Inter/
+    - assets/fonts/At Hauss Arabic/
     - assets/icons/
     - assets/images/
 
   fonts:
     - family: Hero Sandwich Pro
       fonts:
-        - asset: assets/fonts/HeroSandwichPro-Variable.ttf
-    - family: Alexandria
-      fonts:
-        - asset: assets/fonts/Alexandria-VariableFont_wght.ttf
+        - asset: assets/fonts/Hero Sandwich Pro/HeroSandwichPro-Variable.ttf
     - family: Inter
       fonts:
-        - asset: assets/fonts/Inter-Variable.ttf
+        - asset: assets/fonts/Inter/Inter-Variable.ttf
+    - family: At Hauss Arabic
+      fonts:
+        - asset: assets/fonts/At Hauss Arabic/AtHaussArabicVAR.ttf

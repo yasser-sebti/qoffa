@@ -60,7 +60,7 @@ class QoffaEmptyState extends StatelessWidget {
   const QoffaEmptyState({
     required this.icon,
     required this.title,
-    required this.message,
+    this.message,
     this.actionLabel,
     this.onAction,
     super.key,
@@ -68,7 +68,7 @@ class QoffaEmptyState extends StatelessWidget {
 
   final IconData icon;
   final String title;
-  final String message;
+  final String? message;
   final String? actionLabel;
   final VoidCallback? onAction;
 
@@ -91,23 +91,25 @@ class QoffaEmptyState extends StatelessWidget {
           title,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontFamily: 'Hero Sandwich Pro',
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
+            fontFamily: QoffaFontFamily.display,
+            fontSize: QoffaFontSize.headlineSmall,
+            fontWeight: FontWeight.w900,
             color: QoffaColors.primaryNavy,
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 13,
-            height: 1.45,
-            color: QoffaColors.secondarySage,
+        if (message != null && message!.trim().isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            message!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: QoffaFontFamily.body,
+              fontSize: QoffaFontSize.body,
+              height: 1.45,
+              color: QoffaColors.secondarySage,
+            ),
           ),
-        ),
+        ],
         if (actionLabel != null && onAction != null) ...[
           const SizedBox(height: 18),
           QoffaTactilePressable.filled(label: actionLabel!, onTap: onAction!),

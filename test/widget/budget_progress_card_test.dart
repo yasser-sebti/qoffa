@@ -81,7 +81,7 @@ void main() {
 
     // Verify progress card labels are rendered
     expect(find.text("Today's spend"), findsOneWidget);
-    expect(find.text('Remaining budget'), findsOneWidget);
+    expect(find.text('Remaining'), findsOneWidget);
     expect(find.textContaining('of budget'), findsOneWidget);
 
     // Verify QoffaAnimatedCounter widgets are used in the progress card

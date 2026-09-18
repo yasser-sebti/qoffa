@@ -17,8 +17,32 @@ abstract class ShoppingListRepository {
     int? estimatedPriceDzd,
   });
   Future<void> toggleItemCompleted(String itemId, bool isCompleted);
+  Future<void> updateItemQuantity(String itemId, double quantity);
   Future<void> deleteItem(String itemId);
   Future<ShoppingList> getOrCreateDefaultList({String title = 'Shopping list'});
+  Stream<List<DepartmentShoppingItem>> watchDepartmentShoppingItems(String listId);
+}
+
+class DepartmentShoppingItem {
+  const DepartmentShoppingItem({
+    required this.item,
+    this.productId,
+    this.categoryId,
+    required this.categoryName,
+    required this.categoryColorHex,
+    required this.categoryIconKey,
+    required this.unitPriceDzd,
+  });
+
+  final ShoppingListItem item;
+  final String? productId;
+  final String? categoryId;
+  final String categoryName;
+  final String categoryColorHex;
+  final String categoryIconKey;
+  final int unitPriceDzd;
+
+  int get estimatedTotalDzd => (unitPriceDzd * item.quantity).round();
 }
 
 class DriftShoppingListRepository implements ShoppingListRepository {
@@ -94,6 +118,12 @@ class DriftShoppingListRepository implements ShoppingListRepository {
   }
 
   @override
+  Future<void> updateItemQuantity(String itemId, double quantity) async {
+    await (_db.update(_db.shoppingListItems)..where((t) => t.id.equals(itemId)))
+        .write(ShoppingListItemsCompanion(quantity: Value(quantity)));
+  }
+
+  @override
   Future<void> deleteItem(String itemId) async {
     await (_db.delete(
       _db.shoppingListItems,
@@ -113,6 +143,54 @@ class DriftShoppingListRepository implements ShoppingListRepository {
     if (existing != null) return existing;
     return createList(title: title);
   }
+
+  @override
+  Stream<List<DepartmentShoppingItem>> watchDepartmentShoppingItems(String listId) {
+    final itemsStream = watchListItems(listId);
+    return itemsStream.asyncMap((items) async {
+      final products = await (_db.select(_db.products)
+            ..where((t) => t.deletedAt.isNull()))
+          .get();
+      final categories = await (_db.select(_db.categories)
+            ..where((t) => t.deletedAt.isNull()))
+          .get();
+      final productMap = {for (final p in products) p.id: p};
+      final categoryMap = {for (final c in categories) c.id: c};
+
+      return items.map((item) {
+        Product? product;
+        if (item.productId != null) {
+          product = productMap[item.productId];
+        } else {
+          final lower = item.customName.trim().toLowerCase();
+          for (final p in products) {
+            if (p.name.toLowerCase() == lower) {
+              product = p;
+              break;
+            }
+          }
+        }
+
+        final category = product?.categoryId != null
+            ? categoryMap[product!.categoryId]
+            : null;
+        final categoryName = category?.nameAr ?? 'بقالة ومواد عامة';
+        final categoryColorHex = category?.colorHex ?? '#0877EC';
+        final categoryIconKey = category?.iconKey ?? 'basket';
+        final unitPrice = item.estimatedPriceDzd ?? product?.lastPriceDzd ?? 0;
+
+        return DepartmentShoppingItem(
+          item: item,
+          productId: product?.id,
+          categoryId: category?.id,
+          categoryName: categoryName,
+          categoryColorHex: categoryColorHex,
+          categoryIconKey: categoryIconKey,
+          unitPriceDzd: unitPrice,
+        );
+      }).toList();
+    });
+  }
 }
 
 final shoppingListRepositoryProvider = Provider<ShoppingListRepository>((ref) {
@@ -128,3 +206,11 @@ final shoppingListItemsProvider =
     StreamProvider.family<List<ShoppingListItem>, String>((ref, listId) {
       return ref.watch(shoppingListRepositoryProvider).watchListItems(listId);
     });
+
+final departmentShoppingItemsProvider =
+    StreamProvider.family<List<DepartmentShoppingItem>, String>((ref, listId) {
+      return ref
+          .watch(shoppingListRepositoryProvider)
+          .watchDepartmentShoppingItems(listId);
+    });
+

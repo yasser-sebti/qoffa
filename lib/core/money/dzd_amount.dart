@@ -64,7 +64,9 @@ class DzdAmount implements Comparable<DzdAmount> {
     final digits = absDinars.toString();
     final buffer = StringBuffer();
 
-    final separator = (locale == 'ar' || locale == 'fr') ? ' ' : ',';
+    final separator = locale == 'ar'
+        ? '،'
+        : (locale == 'fr' ? ' ' : ',');
     final len = digits.length;
     for (var i = 0; i < len; i++) {
       if (i > 0 && (len - i) % 3 == 0) {

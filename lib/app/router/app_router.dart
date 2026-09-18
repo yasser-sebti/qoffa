@@ -13,10 +13,16 @@ import '../../features/shopping_lists/presentation/shopping_lists_screen.dart';
 import '../localization/app_localizations.dart';
 import '../theme/qoffa_colors.dart';
 import '../theme/qoffa_tokens.dart';
+import '../../core/particles_and_effects/qoffa_particle_overlay.dart';
 import '../../core/widgets/qoffa_tactile_pressable.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>(
   debugLabel: 'root',
+);
+
+final List<GlobalKey<NavigatorState>> _branchNavigatorKeys = List.generate(
+  5,
+  (index) => GlobalKey<NavigatorState>(debugLabel: 'branch_$index'),
 );
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -34,6 +40,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
         branches: [
           StatefulShellBranch(
+            navigatorKey: _branchNavigatorKeys[0],
             routes: [
               GoRoute(
                 path: '/',
@@ -42,6 +49,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           StatefulShellBranch(
+            navigatorKey: _branchNavigatorKeys[1],
             routes: [
               GoRoute(
                 path: '/calendar',
@@ -50,6 +58,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           StatefulShellBranch(
+            navigatorKey: _branchNavigatorKeys[2],
             routes: [
               GoRoute(
                 path: '/add-purchase',
@@ -60,6 +69,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           StatefulShellBranch(
+            navigatorKey: _branchNavigatorKeys[3],
             routes: [
               GoRoute(
                 path: '/later-buy',
@@ -68,6 +78,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           StatefulShellBranch(
+            navigatorKey: _branchNavigatorKeys[4],
             routes: [
               GoRoute(
                 path: '/notebook',
@@ -194,6 +205,14 @@ class QoffaShellScaffold extends StatefulWidget {
 
 class _QoffaShellScaffoldState extends State<QoffaShellScaffold> {
   void _goToBranch(int index) {
+    while (_rootNavigatorKey.currentState?.canPop() ?? false) {
+      _rootNavigatorKey.currentState?.pop();
+    }
+    final currentBranchKey =
+        _branchNavigatorKeys[widget.navigationShell.currentIndex];
+    while (currentBranchKey.currentState?.canPop() ?? false) {
+      currentBranchKey.currentState?.pop();
+    }
     widget.navigationShell.goBranch(
       index,
       initialLocation: index == widget.navigationShell.currentIndex,
@@ -226,8 +245,10 @@ class _QoffaShellScaffoldState extends State<QoffaShellScaffold> {
     final l10n = AppLocalizations.of(context);
     final currentIndex = widget.navigationShell.currentIndex;
 
-    return Scaffold(
-      extendBody: true,
+    return QoffaParticleOverlay(
+      key: QoffaParticleOverlay.shellKey,
+      child: Scaffold(
+        extendBody: true,
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onHorizontalDragEnd: _handleSwipe,
@@ -334,7 +355,8 @@ class _QoffaShellScaffoldState extends State<QoffaShellScaffold> {
           );
         },
       ),
-    );
+    ),
+  );
   }
 }
 

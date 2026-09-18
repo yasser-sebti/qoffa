@@ -13,6 +13,7 @@ class AppLocalizations {
   static const supportedLocales = [Locale('ar'), Locale('fr'), Locale('en')];
 
   bool get isArabic => locale.languageCode == 'ar';
+  bool get isFrench => locale.languageCode == 'fr';
   String get languageCode => locale.languageCode;
   String _v(String ar, String fr, String en) =>
       isArabic ? ar : (locale.languageCode == 'fr' ? fr : en);
@@ -23,6 +24,7 @@ class AppLocalizations {
   String get save => _v('حفظ', 'Enregistrer', 'Save');
   String get create => _v('إنشاء', 'Créer', 'Create');
   String get edit => _v('تعديل', 'Modifier', 'Edit');
+  String get delete => _v('حذف', 'Supprimer', 'Delete');
   String get undo => _v('تراجع', 'Annuler', 'Undo');
   String get retry => _v('إعادة المحاولة', 'Réessayer', 'Try again');
   String get errorTitle =>
@@ -179,7 +181,7 @@ class AppLocalizations {
   String get todaySpent =>
       _v('مصاريف اليوم', 'Dépensé aujourd\'hui', 'Today\'s spend');
   String get remainingBudget =>
-      _v('المتبقي من الميزانية', 'Budget restant', 'Remaining budget');
+      _v('المتبقي', 'Restant', 'Remaining');
   String get budgetUsed => _v('من الميزانية', 'du budget', 'of budget');
   String get quickAdd => _v('إضافة سريعة', 'Ajout rapide', 'Quick add');
   String get refresh => _v('تحديث', 'Actualiser', 'Refresh');
@@ -300,6 +302,28 @@ class AppLocalizations {
   );
   String get confirmPurchase =>
       _v('تأكيد الشراء', 'Confirmer l’achat', 'Confirm purchase');
+  String get resolveBoughtTitle =>
+      _v('تأكيد شراء العنصر', 'Confirmer l’achat de l’article', 'Confirm Item Purchase');
+  String get skipAction => _v('تخطي', 'Ignorer', 'Skip');
+  String get reactivateAction =>
+      _v('إعادة تنشيط', 'Réactiver', 'Reactivate');
+  String get skippedSuccess =>
+      _v('تم تخطي العنصر', 'Article ignoré', 'Item skipped');
+  String get reactivatedSuccess =>
+      _v('تمت إعادة تنشيط العنصر', 'Article réactivé', 'Item reactivated');
+  String get addedOn => _v('أضيف في', 'Ajouté le', 'Added on');
+  String get boughtOn => _v('تم الشراء في', 'Acheté le', 'Bought on');
+  String get skippedOn => _v('تم التخطي في', 'Ignoré le', 'Skipped on');
+  String get allDates => _v('جميع التواريخ', 'Toutes les dates', 'All dates');
+  String get deleteItemConfirmTitle =>
+      _v('حذف العنصر', 'Supprimer l’article', 'Delete item');
+  String get deleteItemConfirmMessage => _v(
+    'هل أنت متأكد من حذف هذا العنصر؟',
+    'Voulez-vous vraiment supprimer cet article ?',
+    'Are you sure you want to delete this item?',
+  );
+  String get itemDeleted =>
+      _v('تم حذف العنصر', 'Article supprimé', 'Item deleted');
   String get noLaterBuyActive => _v(
     'لا شيء مؤجل الآن',
     'Aucun article reporté',
@@ -426,6 +450,143 @@ class AppLocalizations {
   );
   String get defaultShoppingList =>
       _v('قائمة التسوق', 'Liste de courses', 'Shopping list');
+  String get marketHubTitle => _v(
+    'دليل الأسعار وقائمة التسوق',
+    'Marché & Liste de courses',
+    'Market & Shopping Hub',
+  );
+  String get tabSmartList =>
+      _v('قائمة التسوق', 'Liste intelligente', 'Smart List');
+  String get tabMarketPrices =>
+      _v('دليل الأسعار والمحلات', 'Guide des prix', 'Price Directory');
+  String get estimatedBasketTotal => _v(
+    'المجموع التقديري للسلة',
+    'Total estimé du panier',
+    'Estimated basket total',
+  );
+  String itemsPurchasedCount(int completed, int total) => _v(
+    '$completed من $total تم شراؤها',
+    '$completed sur $total achetés',
+    '$completed of $total purchased',
+  );
+  String get filterAndSort =>
+      _v('تصفية وترتيب', 'Filtrer & Trier', 'Filter & Sort');
+  String get sortPriceLowToHigh =>
+      _v('السعر: من الأقل للأعلى', 'Prix: croissant', 'Price: Low to High');
+  String get sortPriceHighToLow =>
+      _v('السعر: من الأعلى للأقل', 'Prix: décroissant', 'Price: High to Low');
+  String get sortDateNewest =>
+      _v('التاريخ: الأحدث أولاً', 'Date: plus récents', 'Date: Newest first');
+  String get sortDateOldest =>
+      _v('التاريخ: الأقدم أولاً', 'Date: plus anciens', 'Date: Oldest first');
+  String get editPrice => _v('تعديل السعر', 'Modifier le prix', 'Edit price');
+  String get enterNewObservedPrice =>
+      _v('تعديل السعر المرصود', 'Modifier le prix observé', 'Edit observed price');
+  String get observedPriceUpdated =>
+      _v('تم تحديث السعر المرصود', 'Prix observé mis à jour', 'Observed price updated');
+  String get sortMostBought =>
+      _v('الأكثر شراءً', 'Plus achetés', 'Most purchased');
+  String get cheapestAt =>
+      _v('أرخص سعر في', 'Moins cher chez', 'Cheapest at');
+  String get priceUpdatedOn =>
+      _v('آخر تسجيل', 'Dernier relevé', 'Recorded on');
+  String get allDepartments =>
+      _v('جميع الأقسام', 'Tous les rayons', 'All departments');
+  String get allStores =>
+      _v('جميع المحلات', 'Tous les magasins', 'All stores');
+  String get noMarketItemsFound => _v(
+    'لم يتم العثور على منتجات',
+    'Aucun produit trouvé',
+    'No products found',
+  );
+  String get noMarketItemsMessage => _v(
+    'جرّب تغيير كلمات البحث أو إزالة معايير التصفية',
+    'Modifiez vos filtres ou termes de recherche',
+    'Try adjusting your search or filters',
+  );
+  String get priceRange =>
+      _v('نطاق السعر', 'Fourchette de prix', 'Price range');
+  String get resetFilters =>
+      _v('إعادة ضبط', 'Réinitialiser', 'Reset');
+  String get applyFilters =>
+      _v('تطبيق التصفية', 'Appliquer', 'Apply');
+  String get addToShoppingList =>
+      _v('أضف للقائمة', 'Ajouter à la liste', 'Add to list');
+  String get foodListTitle => _v(
+    'قائمة الأغذية والأسعار',
+    'Aliments & Prix',
+    'Food & Price List',
+  );
+  String get updateData =>
+      _v('تحديث البيانات', 'Actualiser', 'Update Data');
+  String get dataUpdatedSuccess => _v(
+    'تم تحديث بيانات الأغذية والأسعار',
+    'Données actualisées avec succès',
+    'Food data updated successfully',
+  );
+  String get addFoodItem =>
+      _v('إضافة منتج غذائي', 'Ajouter un aliment', 'Add Food Item');
+  String get editFoodItem =>
+      _v('تعديل المنتج', 'Modifier le produit', 'Edit Product');
+  String get premadeItemLockedName => _v(
+    'اسم المنتج ثابت (قائمة جاهزة)',
+    'Nom fixe (liste fournie)',
+    'Name locked (premade item)',
+  );
+  String get lockedNameExplanation => _v(
+    'اسم هذه السلعة محمي من التعديل (بيانات أساسية)، ولكن يمكنك تعديل سعرها والمتجر أو حذفها.',
+    'Le nom de ce produit de base est verrouillé, mais vous pouvez modifier le prix, le magasin ou le supprimer.',
+    'This staple item name is locked, but you can freely update its price, store, or remove it.',
+  );
+  String get deleteItemConfirm => _v(
+    'هل تريد حذف هذا المنتج من القائمة؟',
+    'Supprimer cet aliment de la liste ?',
+    'Remove this food item from the list?',
+  );
+  String get itemRemovedSuccess => _v(
+    'تم حذف المنتج من القائمة',
+    'Produit supprimé de la liste',
+    'Item removed from list',
+  );
+  String get itemUpdatedSuccess => _v(
+    'تم تحديث بيانات المنتج',
+    'Produit mis à jour',
+    'Item updated successfully',
+  );
+  String get itemAddedSuccess => _v(
+    'تمت إضافة المنتج بنجاح',
+    'Produit ajouté avec succès',
+    'Item added successfully',
+  );
+  String get currencySymbol => _v('دج', 'DA', 'DA');
+  String get all => _v('الكل', 'Tous', 'All');
+  String get searchFoodHint => _v(
+    'ابحث عن سلعة، ماركة، أو باركود...',
+    'Rechercher un aliment, une marque...',
+    'Search food item, brand, or barcode...',
+  );
+  String get productNameOrItem => _v(
+    'اسم السلعة / المنتج',
+    'Nom du produit / aliment',
+    'Product / Food Name',
+  );
+  String get purchasePrice => _v('سعر الشراء', 'Prix d\'achat', 'Purchase Price');
+  String get purchaseStore =>
+      _v('محل / متجر الشراء', 'Magasin d\'achat', 'Store / Shop');
+  String get selectStoreOptional => _v(
+    'اختر المحل (اختياري)',
+    'Choisir le magasin (facultatif)',
+    'Select store (optional)',
+  );
+  String get unspecified => _v('غير محدد', 'Non spécifié', 'Unspecified');
+  String get departmentCategory =>
+      _v('القسم / التصنيف', 'Rayon / Catégorie', 'Department / Category');
+  String get foodNameExample => _v(
+    'مثال: حليب كانديا، طماطم، قهوة...',
+    'Ex: Lait Candia, tomates, café...',
+    'e.g. Candia Milk, Tomatoes, Coffee...',
+  );
+  String get otherCategory => _v('أخرى', 'Autre', 'Other');
 
   String get language => _v('اللغة', 'Langue', 'Language');
   String get localOnlyMode => _v(
@@ -540,6 +701,156 @@ class AppLocalizations {
   );
   String get continueLabel => _v('متابعة', 'Continuer', 'Continue');
   String get startNow => _v('ابدأ الآن', 'Commencer', 'Get started');
+
+  // --- Erase Data Feature ---
+  String get eraseData => _v('مسح البيانات', 'Effacer les données', 'Erase data');
+  String get eraseDataDesc => _v(
+    'مسح سجل المشتريات، النشاط، المحلات، أو إعادة ضبط كاملة',
+    'Supprimer l\'historique, magasins, ou réinitialisation complète',
+    'Clear purchases, activity, shops, or full reset',
+  );
+  String get eraseDataSheetTitle => _v(
+    'مسح البيانات نهائياً',
+    'Effacement permanent des données',
+    'Permanent Data Erase',
+  );
+  String get eraseDataWarning => _v(
+    'تنبيه: عمليات المسح نهائية ولا يمكن التراجع عنها أو استعادة السجلات المحذوفة.',
+    'Attention : ces suppressions sont définitives et irréversibles.',
+    'Warning: deletions are permanent and cannot be undone or restored.',
+  );
+  String get eraseAllData => _v(
+    'مسح كافة البيانات (إعادة ضبط شاملة)',
+    'Tout effacer (Réinitialisation)',
+    'Erase All Data (Full Reset)',
+  );
+  String get eraseAllDataSubtitle => _v(
+    'سيتم مسح كافة المشتريات والنشاطات وقوائم الشراء لاحقاً والمحلات والأطعمة المخصصة.',
+    'Supprime tous les achats, activités, listes plus tard, magasins et aliments créés.',
+    'Deletes all purchases, activity, later buy items, custom shops and custom foods.',
+  );
+  String get eraseAllConfirmTitle => _v(
+    'تأكيد إعادة الضبط الشاملة',
+    'Confirmer la réinitialisation',
+    'Confirm Full Reset',
+  );
+  String get eraseAllConfirmMessage => _v(
+    'هل أنت متأكد من مسح جميع بيانات التطبيق؟ سيتم حذف كافة السجلات ولن تتمكن من استرجاعها أبداً.',
+    'Êtes-vous sûr de vouloir supprimer toutes les données de l\'application ? Cette action est irréversible.',
+    'Are you sure you want to delete all app data? All records will be permanently erased.',
+  );
+  String get tabBoughtAndActivity => _v(
+    'المشتريات والنشاط',
+    'Achats & Activité',
+    'Purchases & Activity',
+  );
+  String get tabLaterBuy => _v(
+    'الشراء لاحقاً (الكل)',
+    'Plus tard (3 onglets)',
+    'Later Buy (All 3 tabs)',
+  );
+  String get tabShops => _v('المحلات المضافة', 'Magasins ajoutés', 'Added Shops');
+  String get tabCustomFoods =>
+      _v('الأطعمة المخصصة', 'Aliments ajoutés', 'Custom Foods');
+  String get allTime => _v('كل الأوقات', 'Tout l\'historique', 'All time');
+  String get pickDateRange =>
+      _v('تحديد فترة معينة', 'Par période', 'Pick date range');
+  String get todayOnly =>
+      _v('اليوم فقط', 'Aujourd\'hui seulement', 'Today only');
+  String get last7Days => _v('آخر 7 أيام', '7 derniers jours', 'Last 7 days');
+  String get last30Days =>
+      _v('آخر 30 يوماً', '30 derniers jours', 'Last 30 days');
+  String get customDateRange =>
+      _v('نطاق تاريخ مخصص', 'Période personnalisée', 'Custom date range');
+  String get deleteOlderThanDays => _v(
+    'حذف السجلات الأقدم من (أيام)',
+    'Supprimer plus ancien que (jours)',
+    'Delete older than (days)',
+  );
+  String get daysUnit => _v('يوم', 'jours', 'days');
+  String get selectDateRangePrompt => _v(
+    'اختر نطاق التاريخ',
+    'Sélectionner la période',
+    'Select date range',
+  );
+  String get recordsCountPurchases =>
+      _v('عملية شراء', 'achats', 'purchases');
+  String get recordsCountNotes =>
+      _v('ملاحظة ونشاط', 'notes & activités', 'notes & activity');
+  String get recordsCountLater =>
+      _v('عنصر لاحقاً', 'éléments plus tard', 'later buy items');
+  String get erasePurchasesBtn => _v(
+    'مسح المشتريات والنشاطات المحددة',
+    'Effacer les achats et activités',
+    'Erase purchases & activity',
+  );
+  String get eraseLaterBuyBtn => _v(
+    'مسح عناصر الشراء لاحقاً',
+    'Effacer la liste plus tard',
+    'Erase later buy items',
+  );
+  String get laterBuyThreeTabsNote => _v(
+    'يشمل الحذف جميع الأقسام الثلاثة: قيد الانتظار، تم شراؤه، وتم التخطي.',
+    'Inclut les 3 onglets : En attente, Acheté et Ignoré.',
+    'Includes all 3 tabs: Active, Bought, and Skipped.',
+  );
+  String get allShopsOption =>
+      _v('جميع المحلات المضافة', 'Tous les magasins ajoutés', 'All added shops');
+  String get specificShopsOption =>
+      _v('تحديد محلات معينة', 'Magasins spécifiques', 'Specific shops');
+  String get searchShopsPlaceholder => _v(
+    'ابحث عن متجر بالاسم أو المنطقة...',
+    'Rechercher un magasin...',
+    'Search shop by name or area...',
+  );
+  String get allCustomFoodsOption => _v(
+    'جميع الأطعمة المخصصة',
+    'Tous les aliments ajoutés',
+    'All custom foods',
+  );
+  String get specificCustomFoodsOption =>
+      _v('تحديد أطعمة معينة', 'Aliments spécifiques', 'Specific foods');
+  String get searchCustomFoodsPlaceholder => _v(
+    'ابحث عن طعام مخصص بالاسم...',
+    'Rechercher un aliment...',
+    'Search custom food by name...',
+  );
+  String get selectAll =>
+      _v('تحديد الكل', 'Tout sélectionner', 'Select all');
+  String get deselectAll =>
+      _v('إلغاء التحديد', 'Tout désélectionner', 'Deselect all');
+  String get selectedCountLabel =>
+      _v('تم تحديد', 'Sélectionné', 'Selected');
+  String get noStoresFound =>
+      _v('لا توجد متاجر مضافة', 'Aucun magasin ajouté', 'No added stores found');
+  String get noCustomFoodsFound => _v(
+    'لا توجد أطعمة مخصصة مضافة',
+    'Aucun aliment ajouté',
+    'No custom foods found',
+  );
+  String get eraseShopsBtn =>
+      _v('مسح المحلات المحددة', 'Effacer les magasins', 'Erase selected shops');
+  String get eraseFoodsBtn =>
+      _v('مسح الأطعمة المحددة', 'Effacer les aliments', 'Erase selected foods');
+  String get eraseSuccessToast => _v(
+    'تم مسح البيانات بنجاح',
+    'Données effacées avec succès',
+    'Data successfully erased',
+  );
+  String get noDataSelectedToast => _v(
+    'يرجى تحديد بيانات لمسحها',
+    'Veuillez sélectionner des éléments',
+    'Please select items to erase',
+  );
+  String get confirmEraseTitle =>
+      _v('تأكيد المسح', 'Confirmer la suppression', 'Confirm Deletion');
+  String get confirmEraseMessage => _v(
+    'هل أنت متأكد من مسح هذه العناصر نهائياً؟ لا يمكن التراجع عن هذه العملية.',
+    'Êtes-vous sûr de vouloir supprimer définitivement ces éléments ?',
+    'Are you sure you want to permanently delete these items?',
+  );
+  String get eraseNow =>
+      _v('مسح نهائي', 'Supprimer définitivement', 'Erase permanently');
 }
 
 class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

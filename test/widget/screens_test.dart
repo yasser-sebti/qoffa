@@ -325,7 +325,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(ShoppingListsScreen), findsOneWidget);
-      expect(find.text('قوائم التسوق'), findsOneWidget);
+      expect(find.text('قائمة الأغذية والأسعار'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 50));

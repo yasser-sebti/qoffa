@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../core/widgets/top_toast_notification.dart';
 import 'localization/app_localizations.dart';
 import 'localization/locale_provider.dart';
@@ -14,12 +15,13 @@ class QoffaApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final locale = ref.watch(localeNotifierProvider);
+    Intl.defaultLocale = locale.languageCode;
 
     return MaterialApp.router(
       title: 'قفة · Qoffa',
       debugShowCheckedModeBanner: false,
-      theme: QoffaTheme.lightTheme,
-      darkTheme: QoffaTheme.darkTheme,
+      theme: QoffaTheme.lightThemeFor(locale),
+      darkTheme: QoffaTheme.darkThemeFor(locale),
       themeMode: ThemeMode.light,
       routerConfig: router,
       locale: locale,

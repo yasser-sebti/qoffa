@@ -158,8 +158,9 @@ class _QoffaNewStoreSheetState extends ConsumerState<QoffaNewStoreSheet> {
           Text(
             l10n.newStoreDetails,
             style: const TextStyle(
-              fontFamily: 'Hero Sandwich Pro',
-              fontSize: 22,
+              fontFamily: QoffaFontFamily.display,
+              fontFamilyFallback: QoffaFontFamily.fallback,
+              fontSize: 24,
               fontWeight: FontWeight.w900,
               color: QoffaColors.primaryNavy,
             ),
@@ -172,8 +173,8 @@ class _QoffaNewStoreSheetState extends ConsumerState<QoffaNewStoreSheet> {
             autofocus: widget.initialName?.isEmpty ?? true,
             textCapitalization: TextCapitalization.words,
             style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 16,
+              fontFamily: QoffaFontFamily.body,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
               color: QoffaColors.primaryNavy,
             ),
@@ -200,8 +201,8 @@ class _QoffaNewStoreSheetState extends ConsumerState<QoffaNewStoreSheet> {
               Text(
                 l10n.storeType,
                 style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 13,
+                  fontFamily: QoffaFontFamily.body,
+                  fontSize: QoffaFontSize.bodySmall,
                   fontWeight: FontWeight.w700,
                   color: QoffaColors.primaryNavy,
                 ),
@@ -245,8 +246,8 @@ class _QoffaNewStoreSheetState extends ConsumerState<QoffaNewStoreSheet> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 12.5,
+                          fontFamily: QoffaFontFamily.body,
+                          fontSize: QoffaFontSize.captionMedium,
                           fontWeight:
                               isSelected ? FontWeight.w800 : FontWeight.w600,
                           color: isSelected
@@ -267,8 +268,8 @@ class _QoffaNewStoreSheetState extends ConsumerState<QoffaNewStoreSheet> {
             controller: _areaController,
             textCapitalization: TextCapitalization.sentences,
             style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 15,
+              fontFamily: QoffaFontFamily.body,
+              fontSize: QoffaFontSize.bodyMedium,
               fontWeight: FontWeight.w600,
               color: QoffaColors.primaryNavy,
             ),
@@ -295,8 +296,8 @@ class _QoffaNewStoreSheetState extends ConsumerState<QoffaNewStoreSheet> {
               Text(
                 l10n.storeRating,
                 style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 13,
+                  fontFamily: QoffaFontFamily.body,
+                  fontSize: QoffaFontSize.bodySmall,
                   fontWeight: FontWeight.w700,
                   color: QoffaColors.primaryNavy,
                 ),
@@ -309,8 +310,8 @@ class _QoffaNewStoreSheetState extends ConsumerState<QoffaNewStoreSheet> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 13,
+                    fontFamily: QoffaFontFamily.body,
+                    fontSize: QoffaFontSize.bodySmall,
                     fontWeight: FontWeight.w700,
                     color: QoffaColors.goldAccent,
                   ),

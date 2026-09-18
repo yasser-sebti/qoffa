@@ -70,8 +70,21 @@ class QoffaConfirmDialog extends StatelessWidget {
     );
   }
 
+  bool get _isTrashIcon {
+    if (icon == null) return false;
+    return icon == Icons.delete ||
+        icon == Icons.delete_outline ||
+        icon == Icons.delete_outline_rounded ||
+        icon == Icons.delete_rounded ||
+        icon == Icons.delete_forever ||
+        icon == Icons.delete_forever_rounded ||
+        icon == Icons.delete_sweep ||
+        icon == Icons.delete_sweep_rounded;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final showIcon = icon != null && !_isTrashIcon;
     return AlertDialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(QoffaTokens.radiusMajor),
@@ -81,33 +94,44 @@ class QoffaConfirmDialog extends StatelessWidget {
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       contentPadding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
       actionsPadding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-      title: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, color: confirmColor, size: 22),
-            const SizedBox(width: 10),
-          ],
-          Expanded(
-            child: Text(
+      title: showIcon
+          ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: confirmColor, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: QoffaFontFamily.display,
+                      fontSize: QoffaFontSize.headlineSmall,
+                      fontWeight: FontWeight.w900,
+                      color: QoffaColors.primaryNavy,
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : Text(
               title,
+              textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Hero Sandwich Pro',
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
+                fontFamily: QoffaFontFamily.display,
+                fontSize: QoffaFontSize.headlineSmall,
+                fontWeight: FontWeight.w900,
                 color: QoffaColors.primaryNavy,
               ),
             ),
-          ),
-        ],
-      ),
       content: Text(
         message,
+        textAlign: TextAlign.center,
         style: const TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 13.5,
+          fontFamily: QoffaFontFamily.body,
+          fontSize: QoffaFontSize.bodyMedium,
           height: 1.5,
-          color: QoffaColors.secondarySage,
+          color: QoffaColors.primaryNavy,
         ),
       ),
       actions: [

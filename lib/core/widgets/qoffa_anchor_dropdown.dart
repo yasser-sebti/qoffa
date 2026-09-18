@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../app/theme/qoffa_colors.dart';
+import '../../app/theme/qoffa_tokens.dart';
 
 /// Single item for [QoffaAnchorDropdown].
 class QoffaDropdownMenuItem<T> {
@@ -356,8 +357,8 @@ class _QoffaDropdownItemState<T> extends State<_QoffaDropdownItem<T>> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 14.5,
+                fontFamily: QoffaFontFamily.body,
+                fontSize: 15.5,
                 fontWeight:
                     widget.isSelected ? FontWeight.w700 : FontWeight.w600,
                 color: textColor,

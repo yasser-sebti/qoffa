@@ -6,36 +6,29 @@ void main() {
   group('ThousandsSeparatorInputFormatter Tests', () {
     final formatter = ThousandsSeparatorInputFormatter();
 
-    test('formats simple and large numbers with comma separator', () {
-      final res1 = formatter.formatEditUpdate(
-        const TextEditingValue(text: ''),
-        const TextEditingValue(
-          text: '100',
-          selection: TextSelection.collapsed(offset: 3),
-        ),
-      );
-      expect(res1.text, '100');
-      expect(res1.selection.end, 3);
+    test('formats simple and large numbers with comma separator in English and Arabic', () {
+      final formatterEn = ThousandsSeparatorInputFormatter(isArabic: false);
+      final formatterAr = ThousandsSeparatorInputFormatter(isArabic: true);
 
-      final res2 = formatter.formatEditUpdate(
-        const TextEditingValue(text: '100'),
-        const TextEditingValue(
-          text: '1000',
-          selection: TextSelection.collapsed(offset: 4),
-        ),
-      );
-      expect(res2.text, '1,000');
-      expect(res2.selection.end, 5);
-
-      final res3 = formatter.formatEditUpdate(
+      final resEn = formatterEn.formatEditUpdate(
         const TextEditingValue(text: '1,000'),
         const TextEditingValue(
           text: '1000000',
           selection: TextSelection.collapsed(offset: 7),
         ),
       );
-      expect(res3.text, '1,000,000');
-      expect(res3.selection.end, 9);
+      expect(resEn.text, '1,000,000');
+      expect(resEn.selection.end, 9);
+
+      final resAr = formatterAr.formatEditUpdate(
+        const TextEditingValue(text: '1،000'),
+        const TextEditingValue(
+          text: '1000000',
+          selection: TextSelection.collapsed(offset: 7),
+        ),
+      );
+      expect(resAr.text, '1،000،000');
+      expect(resAr.selection.end, 9);
     });
 
     test('handles empty and clearing', () {

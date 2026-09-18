@@ -160,3 +160,12 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 }
+
+extension CategoryLocalizationExtension on Category {
+  String localizedName(String langCode) {
+    if (langCode == 'fr' && nameFr.trim().isNotEmpty) return nameFr;
+    if (langCode == 'en' && nameEn.trim().isNotEmpty) return nameEn;
+    return nameAr;
+  }
+}
+

@@ -15,6 +15,7 @@ import '../../../core/widgets/qoffa_motion.dart';
 import '../../../core/widgets/qoffa_tactile_pressable.dart';
 import '../../../core/widgets/top_toast_notification.dart';
 import '../data/settings_repository.dart';
+import 'widgets/erase_data_sheet.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -69,10 +70,7 @@ class SettingsScreen extends ConsumerWidget {
                   key: const PageStorageKey('settings-scroll'),
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 140),
                   children: [
                     // 1. Local-Only Mode Badge
                     QoffaReveal(
@@ -387,9 +385,90 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
 
+                    const SizedBox(height: 24),
+
+                    // 5. Erase Data Section
+                    _SectionHeader(title: l10n.eraseData),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(
+                          QoffaTokens.radiusMajor,
+                        ),
+                        border: Border.all(
+                          color: QoffaColors.warningCoral.withValues(alpha: 0.35),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: QoffaColors.warningCoral
+                                      .withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(
+                                    QoffaTokens.radiusControls,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.delete_sweep_rounded,
+                                  color: QoffaColors.warningCoral,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l10n.eraseData,
+                                      style: const TextStyle(
+                                        fontFamily: 'Hero Sandwich Pro',
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                        color: QoffaColors.primaryNavy,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      l10n.eraseDataDesc,
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 12,
+                                        color: QoffaColors.secondarySage,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          QoffaTactilePressable.outline(
+                            width: double.infinity,
+                            height: 48,
+                            label: l10n.eraseDataSheetTitle,
+                            icon: Icons.delete_outline_rounded,
+                            borderColor:
+                                QoffaColors.warningCoral.withValues(alpha: 0.7),
+                            textColor: QoffaColors.warningCoral,
+                            onTap: () => EraseDataSheet.show(context),
+                          ),
+                        ],
+                      ),
+                    ),
+
                     const SizedBox(height: 32),
 
-                    // 5. About App Footer
+                    // 6. About App Footer
                     Center(
                       child: Column(
                         children: [

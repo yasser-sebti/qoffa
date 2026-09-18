@@ -102,8 +102,9 @@ class HomeScreen extends ConsumerWidget {
                         child: Text(
                           l10n.recentActivity,
                           style: const TextStyle(
-                            fontFamily: 'Hero Sandwich Pro',
-                            fontSize: 23,
+                            fontFamily: QoffaFontFamily.display,
+                            fontFamilyFallback: QoffaFontFamily.fallback,
+                            fontSize: QoffaFontSize.headlineSmall,
                             fontWeight: FontWeight.w800,
                             color: QoffaColors.primaryNavy,
                           ),
@@ -117,8 +118,8 @@ class HomeScreen extends ConsumerWidget {
                             Text(
                               l10n.seeAll,
                               style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 13,
+                                fontFamily: QoffaFontFamily.body,
+                                fontSize: 14.5,
                                 fontWeight: FontWeight.w700,
                                 color: Color(0xFF008744),
                               ),
@@ -142,12 +143,12 @@ class HomeScreen extends ConsumerWidget {
                 data: (entries) {
                   if (entries.isEmpty) {
                     return SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 140),
                       sliver: SliverToBoxAdapter(
                         child: QoffaReveal(
                           delay: QoffaTokens.stagger * 3,
                           child: QoffaEmptyState(
-                            icon: Icons.shopping_basket_outlined,
+                            icon: Icons.remove_shopping_cart_rounded,
                             title: l10n.noPurchasesYet,
                             message: l10n.noPurchasesMessage,
                             actionLabel: l10n.addFirstPurchase,
@@ -158,7 +159,7 @@ class HomeScreen extends ConsumerWidget {
                     );
                   }
                   return SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 140),
                     sliver: SliverToBoxAdapter(
                       child: QoffaReveal(
                         delay: QoffaTokens.stagger * 3,
@@ -246,8 +247,9 @@ class _HomeHeader extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontFamily: 'Hero Sandwich Pro',
-                      fontSize: isCompact ? 24 : 28,
+                      fontFamily: QoffaFontFamily.display,
+                      fontFamilyFallback: QoffaFontFamily.fallback,
+                      fontSize: isCompact ? 25 : 29,
                       fontWeight: FontWeight.w900,
                       height: 1.1,
                       color: QoffaColors.primaryNavy,
@@ -275,8 +277,8 @@ class _HomeHeader extends StatelessWidget {
               l10n.subtitleHome,
               maxLines: 2,
               style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 13,
+                fontFamily: QoffaFontFamily.body,
+                fontSize: QoffaFontSize.bodySmall,
                 height: 1.3,
                 fontWeight: FontWeight.w500,
                 color: QoffaColors.secondarySage,
@@ -409,8 +411,10 @@ class _ConnectedBudgetHero extends StatelessWidget {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
-                                        fontFamily: 'Hero Sandwich Pro',
-                                        fontSize: 18,
+                                        fontFamily: QoffaFontFamily.display,
+                                        fontFamilyFallback:
+                                            QoffaFontFamily.fallback,
+                                        fontSize: QoffaFontSize.titleMedium,
                                         fontWeight: FontWeight.w800,
                                         color: Colors.white,
                                       ),
@@ -433,8 +437,10 @@ class _ConnectedBudgetHero extends StatelessWidget {
                                       Text(
                                         '$percent%',
                                         style: const TextStyle(
-                                          fontFamily: 'Hero Sandwich Pro',
-                                          fontSize: 16,
+                                          fontFamily: QoffaFontFamily.display,
+                                          fontFamilyFallback:
+                                              QoffaFontFamily.fallback,
+                                          fontSize: 17,
                                           fontWeight: FontWeight.w900,
                                           height: 1.0,
                                           color: Color(0xFF008744),
@@ -444,8 +450,8 @@ class _ConnectedBudgetHero extends StatelessWidget {
                                       Text(
                                         l10n.used,
                                         style: const TextStyle(
-                                          fontFamily: 'Inter',
-                                          fontSize: 10,
+                                          fontFamily: QoffaFontFamily.body,
+                                          fontSize: QoffaFontSize.micro,
                                           fontWeight: FontWeight.w700,
                                           height: 1.0,
                                           color: Color(0xFF008744),
@@ -466,8 +472,9 @@ class _ConnectedBudgetHero extends StatelessWidget {
                                     ? '-${DzdAmount(-remaining.dinars).format(locale: locale)}'
                                     : remaining.format(locale: locale),
                                 style: const TextStyle(
-                                  fontFamily: 'Hero Sandwich Pro',
-                                  fontSize: 38,
+                                  fontFamily: QoffaFontFamily.display,
+                                  fontFamilyFallback: QoffaFontFamily.fallback,
+                                  fontSize: QoffaFontSize.display,
                                   fontWeight: FontWeight.w900,
                                   height: 1.0,
                                   letterSpacing: -0.5,
@@ -482,8 +489,8 @@ class _ConnectedBudgetHero extends StatelessWidget {
                                   ? l10n.overBudget
                                   : l10n.remaining,
                               style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 14,
+                                fontFamily: QoffaFontFamily.body,
+                                fontSize: QoffaFontSize.body,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white.withValues(alpha: 0.94),
                               ),
@@ -516,8 +523,9 @@ class _ConnectedBudgetHero extends StatelessWidget {
                         Text(
                           spent.format(locale: locale),
                           style: const TextStyle(
-                            fontFamily: 'Hero Sandwich Pro',
-                            fontSize: 22,
+                            fontFamily: QoffaFontFamily.display,
+                            fontFamilyFallback: QoffaFontFamily.fallback,
+                            fontSize: 24,
                             fontWeight: FontWeight.w900,
                             height: 1.0,
                             color: QoffaColors.primaryNavy,
@@ -527,8 +535,8 @@ class _ConnectedBudgetHero extends StatelessWidget {
                         Text(
                           l10n.spent,
                           style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 12,
+                            fontFamily: QoffaFontFamily.body,
+                            fontSize: QoffaFontSize.captionMedium,
                             fontWeight: FontWeight.w600,
                             color: QoffaColors.secondarySage,
                           ),
@@ -540,8 +548,8 @@ class _ConnectedBudgetHero extends StatelessWidget {
                       TextSpan(
                         text: '${l10n.projected} ',
                         style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 13,
+                          fontFamily: QoffaFontFamily.body,
+                          fontSize: QoffaFontSize.bodySmall,
                           fontWeight: FontWeight.w600,
                           color: QoffaColors.secondarySage,
                         ),
@@ -549,8 +557,9 @@ class _ConnectedBudgetHero extends StatelessWidget {
                           TextSpan(
                             text: projection.projectedMonthEnd.format(locale: locale),
                             style: const TextStyle(
-                              fontFamily: 'Hero Sandwich Pro',
-                              fontSize: 15,
+                              fontFamily: QoffaFontFamily.display,
+                              fontFamilyFallback: QoffaFontFamily.fallback,
+                              fontSize: 16.5,
                               fontWeight: FontWeight.w900,
                               color: QoffaColors.primaryNavy,
                             ),
@@ -868,8 +877,9 @@ class _HomeStatsRow extends StatelessWidget {
                             child: Text(
                               statValue,
                               style: TextStyle(
-                                fontFamily: 'Hero Sandwich Pro',
-                                fontSize: 20,
+                                fontFamily: QoffaFontFamily.display,
+                                fontFamilyFallback: QoffaFontFamily.fallback,
+                                fontSize: QoffaFontSize.titleLarge,
                                 fontWeight: FontWeight.w900,
                                 height: 1.1,
                                 color: statColor,
@@ -882,8 +892,8 @@ class _HomeStatsRow extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 12.5,
+                              fontFamily: QoffaFontFamily.body,
+                              fontSize: QoffaFontSize.captionMedium,
                               fontWeight: FontWeight.w600,
                               height: 1.2,
                               color: QoffaColors.secondarySage,
@@ -926,13 +936,19 @@ class _HomeStatsRow extends StatelessWidget {
                     Container(
                       width: 44,
                       height: 44,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFFFF0EC),
+                      decoration: BoxDecoration(
+                        color: mostUsedProduct != null
+                            ? const Color(0xFFFFF0EC)
+                            : QoffaColors.mintSurfaceTint,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.restaurant_rounded,
-                        color: Color(0xFFE74C3C),
+                      child: Icon(
+                        mostUsedProduct != null
+                            ? Icons.restaurant_rounded
+                            : Icons.inventory_2_outlined,
+                        color: mostUsedProduct != null
+                            ? const Color(0xFFE74C3C)
+                            : QoffaColors.mutedText,
                         size: 22,
                       ),
                     ),
@@ -942,35 +958,53 @@ class _HomeStatsRow extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
+                          if (mostUsedProduct == null)
+                            Text(
                               topProductName,
-                              maxLines: 1,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                fontFamily: 'Hero Sandwich Pro',
-                                fontSize: 18,
+                                fontFamily: QoffaFontFamily.display,
+                                fontFamilyFallback: QoffaFontFamily.fallback,
+                                fontSize: 16.0,
                                 fontWeight: FontWeight.w800,
-                                height: 1.1,
+                                height: 1.15,
                                 color: QoffaColors.primaryNavy,
                               ),
+                            )
+                          else
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                topProductName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: QoffaFontFamily.display,
+                                  fontFamilyFallback: QoffaFontFamily.fallback,
+                                  fontSize: QoffaFontSize.titleMedium,
+                                  fontWeight: FontWeight.w800,
+                                  height: 1.1,
+                                  color: QoffaColors.primaryNavy,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            topProductSubheader,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              height: 1.2,
-                              color: QoffaColors.secondarySage,
+                          if (mostUsedProduct != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              topProductSubheader,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: QoffaFontFamily.body,
+                                fontSize: QoffaFontSize.captionMedium,
+                                fontWeight: FontWeight.w600,
+                                height: 1.2,
+                                color: QoffaColors.secondarySage,
+                              ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
@@ -1055,8 +1089,9 @@ class _RecentPurchaseRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontFamily: 'Hero Sandwich Pro',
-                        fontSize: 17,
+                        fontFamily: QoffaFontFamily.display,
+                        fontFamilyFallback: QoffaFontFamily.fallback,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
                         color: QoffaColors.primaryNavy,
                       ),
@@ -1067,8 +1102,8 @@ class _RecentPurchaseRow extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
+                        fontFamily: QoffaFontFamily.body,
+                        fontSize: QoffaFontSize.bodySmall,
                         fontWeight: FontWeight.w500,
                         color: QoffaColors.secondarySage,
                       ),
@@ -1081,8 +1116,9 @@ class _RecentPurchaseRow extends StatelessWidget {
               Text(
                 DzdAmount(p.totalDzd).format(locale: locale),
                 style: const TextStyle(
-                  fontFamily: 'Hero Sandwich Pro',
-                  fontSize: 17.5,
+                  fontFamily: QoffaFontFamily.display,
+                  fontFamilyFallback: QoffaFontFamily.fallback,
+                  fontSize: 18.5,
                   fontWeight: FontWeight.w900,
                   color: QoffaColors.primaryNavy,
                 ),

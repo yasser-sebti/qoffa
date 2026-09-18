@@ -11,6 +11,9 @@ import '../../../core/widgets/qoffa_dropdown.dart';
 import '../../../core/widgets/qoffa_layout.dart';
 import '../../../core/widgets/qoffa_motion.dart';
 import '../../../core/widgets/qoffa_tactile_pressable.dart';
+import '../../../core/widgets/qoffa_filter_chip.dart';
+import '../../../core/particles_and_effects/particle_effect_presets.dart';
+import '../../../core/particles_and_effects/qoffa_particle_overlay.dart';
 import '../../../core/widgets/top_toast_notification.dart';
 import '../data/notebook_repository.dart';
 
@@ -382,10 +385,17 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
       message: l10n.deleteNoteConfirmMessage,
       confirmLabel: l10n.deleteNote,
       cancelLabel: l10n.cancel,
-      icon: Icons.delete_outline_rounded,
     );
+    if (!mounted) return false;
 
     if (confirmed == true) {
+      final screenSize = MediaQuery.sizeOf(context);
+      QoffaParticleOverlay.spawn(
+        context,
+        globalOrigin: Offset(screenSize.width * 0.5, screenSize.height * 0.45),
+        config: ParticleEffectPresets.deletion,
+        spawnWidth: screenSize.width * 0.65,
+      );
       await ref.read(notebookRepositoryProvider).deleteNote(note.id);
       QoffaToast.show(
         title: l10n.noteDeleted,
@@ -510,7 +520,7 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
 
                     if (filtered.isEmpty) {
                       return ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 28, 20, 120),
+                        padding: const EdgeInsets.fromLTRB(20, 28, 20, 140),
                         children: [
                           QoffaEmptyState(
                             icon: Icons.menu_book_rounded,
@@ -525,7 +535,7 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
                     return ListView.builder(
                       key: const PageStorageKey('notebook-list'),
                       physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 140),
                       itemCount: filtered.length,
                       itemBuilder: (context, index) => QoffaReveal(
                         delay: QoffaTokens.stagger * index.clamp(0, 5),
@@ -557,38 +567,10 @@ class _NotebookScreenState extends ConsumerState<NotebookScreen> {
   }
 
   Widget _filterChip(String filterKey, String label) {
-    final selected = _selectedFilter == filterKey;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => setState(() => _selectedFilter = filterKey),
-        borderRadius: BorderRadius.circular(QoffaTokens.radiusPill),
-        child: AnimatedContainer(
-          duration: QoffaTokens.motionMedium,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-          decoration: BoxDecoration(
-            color: selected
-                ? QoffaColors.actionGreen
-                : QoffaColors.whiteSurface,
-            borderRadius: BorderRadius.circular(QoffaTokens.radiusPill),
-            border: Border.all(
-              color: selected
-                  ? QoffaColors.actionGreen
-                  : QoffaColors.softBorder,
-              width: 1.4,
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: selected ? Colors.white : QoffaColors.primaryNavy,
-            ),
-          ),
-        ),
-      ),
+    return QoffaFilterChip(
+      label: label,
+      isSelected: _selectedFilter == filterKey,
+      onTap: () => setState(() => _selectedFilter = filterKey),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../app/theme/qoffa_colors.dart';
+import '../../app/theme/qoffa_tokens.dart';
 import '../money/thousands_separator_input_formatter.dart';
 
 /// QoffaTypingBox: Reusable typing value template widget for Qoffa.
@@ -48,13 +49,14 @@ class QoffaTypingBox extends StatefulWidget {
     String? label,
     TextEditingController? controller,
     FocusNode? focusNode,
-    String hintText = '000,000 ...',
+    String hintText = '000،000 ...',
     String suffixText = 'DA',
     IconData prefixIcon = Icons.paid_rounded,
     double height = 52.0,
     BorderRadius? borderRadius,
     bool enabled = true,
     bool readOnly = false,
+    bool? isArabic,
     ValueChanged<String>? onChanged,
     ValueChanged<String>? onSubmitted,
   }) {
@@ -67,7 +69,7 @@ class QoffaTypingBox extends StatefulWidget {
       prefixIcon: prefixIcon,
       suffixText: suffixText,
       keyboardType: const TextInputType.numberWithOptions(decimal: false),
-      inputFormatters: [ThousandsSeparatorInputFormatter()],
+      inputFormatters: [ThousandsSeparatorInputFormatter(isArabic: isArabic)],
       height: height,
       borderRadius: borderRadius,
       enabled: enabled,
@@ -144,24 +146,24 @@ class _QoffaTypingBoxState extends State<QoffaTypingBox> {
 
     final effectiveTextStyle = widget.textStyle ??
         const TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 17,
+          fontFamily: QoffaFontFamily.body,
+          fontSize: QoffaFontSize.titleSmall,
           fontWeight: FontWeight.w800,
           color: QoffaColors.primaryNavy,
         );
 
     final effectiveHintStyle = widget.hintStyle ??
         TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 16,
+          fontFamily: QoffaFontFamily.body,
+          fontSize: QoffaFontSize.bodyMedium,
           fontWeight: FontWeight.w700,
           color: QoffaColors.secondarySage.withValues(alpha: 0.6),
         );
 
     final effectiveSuffixStyle = widget.suffixStyle ??
         const TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 13,
+          fontFamily: QoffaFontFamily.body,
+          fontSize: QoffaFontSize.bodySmall,
           fontWeight: FontWeight.w700,
           color: QoffaColors.secondarySage,
         );
@@ -256,8 +258,8 @@ class _QoffaTypingBoxState extends State<QoffaTypingBox> {
           Text(
             widget.label!,
             style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13,
+              fontFamily: QoffaFontFamily.body,
+              fontSize: QoffaFontSize.bodySmall,
               fontWeight: FontWeight.w700,
               color: QoffaColors.primaryNavy,
             ),

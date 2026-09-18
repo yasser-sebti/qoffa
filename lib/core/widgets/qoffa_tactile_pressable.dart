@@ -251,8 +251,8 @@ class _QoffaTactilePressableState extends State<QoffaTactilePressable> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 15,
+                fontFamily: QoffaFontFamily.body,
+                fontSize: QoffaFontSize.bodyMedium,
                 fontWeight: FontWeight.w700,
                 color: resolvedTextColor,
               ),

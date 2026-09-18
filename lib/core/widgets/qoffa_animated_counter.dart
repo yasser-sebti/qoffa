@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../app/theme/qoffa_tokens.dart';
+import '../utils/qoffa_number_format.dart';
 
 /// QoffaAnimatedCounter: A reusable animated numeric counter template.
 ///
@@ -88,14 +90,13 @@ class _QoffaAnimatedCounterState extends State<QoffaAnimatedCounter>
     super.dispose();
   }
 
-  String _formatNumber(int number) {
-    final str = number.abs().toString();
+  String _formatNumber(int number, BuildContext context) {
+    final isArabic =
+        Localizations.maybeLocaleOf(context)?.languageCode == 'ar' ||
+        Directionality.maybeOf(context) == TextDirection.rtl;
     final formatted = widget.formatThousands
-        ? str.replaceAllMapped(
-            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-            (match) => '${match[1]},',
-          )
-        : str;
+        ? QoffaNumberFormat.format(number.abs(), isArabic: isArabic)
+        : number.abs().toString();
     final sign = number < 0
         ? '-'
         : (number > 0 && widget.prefix.isNotEmpty ? widget.prefix : '');
@@ -104,15 +105,19 @@ class _QoffaAnimatedCounterState extends State<QoffaAnimatedCounter>
 
   @override
   Widget build(BuildContext context) {
+    final resolvedStyle = widget.style.fontFamilyFallback == null
+        ? widget.style.copyWith(fontFamilyFallback: QoffaFontFamily.fallback)
+        : widget.style;
+
     if (widget.value == null) {
-      return Text(widget.nullPlaceholder, style: widget.style);
+      return Text(widget.nullPlaceholder, style: resolvedStyle);
     }
 
     // If animations are globally disabled, render immediately
     if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
       return Text(
-        _formatNumber(widget.value!.round()),
-        style: widget.style,
+        _formatNumber(widget.value!.round(), context),
+        style: resolvedStyle,
       );
     }
 
@@ -120,8 +125,8 @@ class _QoffaAnimatedCounterState extends State<QoffaAnimatedCounter>
       animation: _animation,
       builder: (context, child) {
         return Text(
-          _formatNumber(_animation.value.round()),
-          style: widget.style,
+          _formatNumber(_animation.value.round(), context),
+          style: resolvedStyle,
         );
       },
     );

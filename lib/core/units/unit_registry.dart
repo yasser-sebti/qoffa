@@ -167,12 +167,22 @@ class UnitRegistry {
   ];
 
   static final Map<String, QoffaUnit> _unitMap = {
-    for (final unit in allUnits) unit.id: unit,
+    for (final unit in allUnits) ...{
+      unit.id: unit,
+      unit.id.toLowerCase(): unit,
+    },
+    'l': liter,
+    'unit-piece': piece,
+    'unit_piece': piece,
+    'unit': piece,
+    'pcs': piece,
   };
 
-  static QoffaUnit? findById(String id) => _unitMap[id];
+  static QoffaUnit? findById(String id) =>
+      _unitMap[id] ?? _unitMap[id.toLowerCase()];
 
-  static QoffaUnit fromIdOrFallback(String id) => _unitMap[id] ?? piece;
+  static QoffaUnit fromIdOrFallback(String id) =>
+      _unitMap[id] ?? _unitMap[id.toLowerCase()] ?? piece;
 
   /// Returns whether two units can be directly converted without product-specific rules.
   static bool areCompatible(QoffaUnit u1, QoffaUnit u2) {

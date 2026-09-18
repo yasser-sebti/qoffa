@@ -49,6 +49,44 @@ class WasItWorthWaitingService {
     final uObs = UnitRegistry.fromIdOrFallback(observedUnitId);
     final uFinal = UnitRegistry.fromIdOrFallback(finalUnitId);
 
+    // Fast-path: When units and quantities are identical, direct difference is exact and foolproof
+    if ((uObs.id == uFinal.id || observedUnitId.toLowerCase() == finalUnitId.toLowerCase()) &&
+        observedQuantity == finalQuantity) {
+      final savingsDinars = observedPrice.dinars - finalPrice.dinars;
+      final absDiff = DzdAmount(savingsDinars);
+      final pctDiff = observedPrice.dinars > 0
+          ? ((finalPrice.dinars - observedPrice.dinars) /
+                  observedPrice.dinars) *
+              100
+          : 0.0;
+
+      final LaterBuyOutcomeType outcome;
+      final String explanation;
+      if (savingsDinars > 0) {
+        outcome = LaterBuyOutcomeType.savedMoney;
+        explanation =
+            'Waiting saved you ${absDiff.format()} (${pctDiff.abs().toStringAsFixed(1)}% less) over $daysWaited days!';
+      } else if (savingsDinars < 0) {
+        outcome = LaterBuyOutcomeType.paidMore;
+        explanation =
+            'Price increased by ${DzdAmount(-savingsDinars).format()} (${pctDiff.toStringAsFixed(1)}% more) after waiting $daysWaited days.';
+      } else {
+        outcome = LaterBuyOutcomeType.samePrice;
+        explanation = 'The price remained identical after $daysWaited days.';
+      }
+
+      return WasItWorthWaitingResult(
+        outcomeType: outcome,
+        daysWaited: daysWaited,
+        observedPrice: observedPrice,
+        finalPrice: finalPrice,
+        absoluteDifferenceDzd: absDiff,
+        percentageDifference: pctDiff,
+        explanation: explanation,
+        isComparable: true,
+      );
+    }
+
     // If units are dimensionally incompatible
     if (!UnitRegistry.areCompatible(uObs, uFinal)) {
       return WasItWorthWaitingResult(

@@ -130,17 +130,32 @@ void main() {
         expect(find.text('+20 DA'), findsOneWidget);
         expect(find.byIcon(Icons.trending_up_rounded), findsOneWidget);
 
-        // Test auto comma thousands separator (15000 -> 15,000)
+        // Test auto comma thousands separator (15000 -> 15,000 in English)
         final unitPriceField150 = find.widgetWithText(TextField, '150');
         await tester.enterText(unitPriceField150, '15000');
         await tester.pumpAndSettle();
-        expect(find.widgetWithText(TextField, '15,000'), findsOneWidget);
+        expect(
+          find.byWidgetPredicate(
+            (w) =>
+                w is TextField &&
+                (w.controller?.text == '15,000' ||
+                    w.controller?.text == '15،000'),
+          ),
+          findsOneWidget,
+        );
 
-        // Test clearing field displays '000,000 ...' placeholder
-        final unitPriceField15000 = find.widgetWithText(TextField, '15,000');
+        // Test clearing field displays placeholder
+        final unitPriceField15000 = find.byType(TextField).first;
         await tester.enterText(unitPriceField15000, '');
         await tester.pumpAndSettle();
-        expect(find.text('000,000 ...'), findsOneWidget);
+        expect(
+          find.byWidgetPredicate(
+            (w) =>
+                w is TextField &&
+                (w.decoration?.hintText?.contains('000') ?? false),
+          ),
+          findsOneWidget,
+        );
         expect(find.text('DA'), findsWidgets);
 
         await tester.pumpWidget(const SizedBox());

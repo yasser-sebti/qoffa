@@ -6,12 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../app/localization/app_localizations.dart';
+import '../../../app/localization/locale_provider.dart';
 import '../../../app/theme/qoffa_colors.dart';
 import '../../../app/theme/qoffa_tokens.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/database/database_provider.dart';
 import 'package:drift/drift.dart' hide Column;
 import '../../../core/units/unit_registry.dart';
+import '../../../core/utils/qoffa_number_format.dart';
 import '../../../core/widgets/barcode_scanner_modal.dart';
 import '../../../core/widgets/mint_background_scaffold.dart';
 import '../../../core/widgets/qoffa_anchor_dropdown.dart';
@@ -33,6 +35,8 @@ import '../../../core/widgets/qoffa_search_picker_sheet.dart';
 import '../../stores/data/store_repository.dart';
 import '../../stores/domain/store_type.dart';
 import '../../stores/presentation/qoffa_new_store_sheet.dart';
+import '../../../core/particles_and_effects/particle_effect_presets.dart';
+import '../../../core/particles_and_effects/qoffa_particle_overlay.dart';
 import '../data/purchase_repository.dart';
 
 class AddPurchaseScreen extends ConsumerStatefulWidget {
@@ -67,9 +71,11 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
   List<Product> _quickAddSuggestions = [];
   late final AnimationController _refreshAnimController;
   late final Animation<double> _refreshRotation;
+  bool _isBoughtAnimating = false;
+  final GlobalKey _actionRowKey = GlobalKey();
 
   int get _parsedPrice =>
-      int.tryParse(_priceController.text.replaceAll(',', '').trim()) ?? 0;
+      QoffaNumberFormat.tryParseInt(_priceController.text) ?? 0;
 
   @override
   void initState() {
@@ -85,10 +91,13 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
         curve: Curves.easeInOutCubic,
       ),
     );
-    final initialPrice = _priceController.text.replaceAll(',', '').trim();
+    final initialPrice = QoffaNumberFormat.clean(_priceController.text);
     if (initialPrice.isNotEmpty && int.tryParse(initialPrice) != null) {
-      _unitPriceController.text =
-          NumberFormat('#,###', 'en_US').format(int.parse(initialPrice));
+      final isArabic = (ref.read(localeNotifierProvider).languageCode) == 'ar';
+      _unitPriceController.text = QoffaNumberFormat.format(
+        int.parse(initialPrice),
+        isArabic: isArabic,
+      );
     } else {
       _unitPriceController.text = initialPrice;
     }
@@ -96,11 +105,12 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
       if (mounted) setState(() {});
     });
     _priceController.addListener(() {
-      final raw = _priceController.text.replaceAll(',', '').trim();
+      final isArabic = (ref.read(localeNotifierProvider).languageCode) == 'ar';
+      final raw = QoffaNumberFormat.clean(_priceController.text);
       final formatted = raw.isEmpty
           ? ''
           : (int.tryParse(raw) != null
-              ? NumberFormat('#,###', 'en_US').format(int.parse(raw))
+              ? QoffaNumberFormat.format(int.parse(raw), isArabic: isArabic)
               : raw);
       if (_unitPriceController.text != formatted) {
         _unitPriceController.value = TextEditingValue(
@@ -266,18 +276,38 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
       note: null,
     );
 
-    // Show non-blocking confirmation toast with 5-second Undo
-    final diff = _todayDiff;
-    final message = diff != 0
-        ? '$name Â· ${diff > 0 ? '+' : ''}$diff DA'
-        : '$name Â· ${purchase.totalDzd} DA';
+    if (!mounted) return;
 
-    QoffaToast.show(
+    setState(() => _isBoughtAnimating = true);
+
+    final renderBox =
+        _actionRowKey.currentContext?.findRenderObject() as RenderBox?;
+    final spawnOrigin = renderBox != null
+        ? renderBox.localToGlobal(
+            Offset(renderBox.size.width / 2, renderBox.size.height / 2),
+          )
+        : MediaQuery.sizeOf(context).center(Offset.zero);
+
+    QoffaParticleOverlay.spawn(
+      _actionRowKey.currentContext ?? context,
+      globalOrigin: spawnOrigin,
+      config: ParticleEffectPresets.celebration,
+      spawnWidth: 80.0,
+    );
+
+    // Show non-blocking confirmation toast with 7-second Undo and progress timer bar
+    final diff = _todayDiff;
+    final priceStr = diff != 0
+        ? '${diff > 0 ? '+' : ''}$diff DA'
+        : '${purchase.totalDzd} DA';
+    final message = '\u2068$name\u2069 \u2066\u200E$priceStr\u2069';
+
+    QoffaToast.showWithProgress(
       title: l10n.purchaseSaved,
       message: message,
       icon: Icons.check_circle_rounded,
-      color: diff > 0 ? QoffaColors.warningCoral : QoffaColors.actionGreen,
-      duration: const Duration(seconds: 5),
+      color: QoffaColors.actionGreen,
+      duration: const Duration(seconds: 7),
       actionLabel: l10n.undo,
       onAction: () async {
         await purchaseRepo.deletePurchase(purchase.id);
@@ -285,12 +315,22 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
       },
     );
 
+    // Reset everything to default empty state
+    _productController.clear();
+    _priceController.clear();
+    _unitPriceController.clear();
+    _selectedProductId = null;
+    _selectedStore = '';
+    _selectedStoreId = null;
+    _selectedStoreName = '';
+    _selectedStoreType = null;
+    _quantity = 1.0;
+    _selectedUnitId = 'piece';
+    _lastPriceDzd = null;
+
+    await Future<void>.delayed(const Duration(milliseconds: 750));
     if (mounted) {
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/');
-      }
+      setState(() => _isBoughtAnimating = false);
     }
   }
 
@@ -335,19 +375,17 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
       storeId: _selectedStoreId,
     );
 
+    if (!mounted) return;
     QoffaToast.show(
       title: l10n.addedToLaterBuy,
-      message: '$name Â· $price DA',
+      message: '\u2068$name\u2069 \u2066\u200E$price DA\u2069',
       icon: Icons.watch_later_outlined,
-      color: QoffaColors.warningCoral,
+      type: QoffaNotificationType.normal,
+      color: QoffaColors.skyBlue,
     );
 
     if (mounted) {
-      if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go('/');
-      }
+      context.go('/later-buy');
     }
   }
 
@@ -442,7 +480,10 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
       builder: (ctx) => AlertDialog(
         title: Text(
           l10n.store,
-          style: const TextStyle(fontFamily: 'Hero Sandwich Pro'),
+          style: const TextStyle(
+            fontFamily: QoffaFontFamily.display,
+            fontFamilyFallback: QoffaFontFamily.fallback,
+          ),
         ),
         content: TextField(
           controller: controller,
@@ -494,8 +535,9 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
     final diff = _todayDiff;
 
     return MintBackgroundScaffold(
-      child: SafeArea(
-        child: Column(
+      child: QoffaParticleOverlay(
+        child: SafeArea(
+          child: Column(
           children: [
             // Top App Bar matching Settings styling and position
             Padding(
@@ -525,8 +567,9 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontFamily: 'Hero Sandwich Pro',
-                        fontSize: 26,
+                        fontFamily: QoffaFontFamily.display,
+                        fontFamilyFallback: QoffaFontFamily.fallback,
+                        fontSize: 28,
                         fontWeight: FontWeight.w900,
                         color: QoffaColors.primaryNavy,
                       ),
@@ -566,8 +609,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                                 ).format(_selectedDate),
                                 maxLines: 1,
                                 style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 12,
+                                  fontFamily: QoffaFontFamily.body,
+                                  fontSize: QoffaFontSize.captionMedium,
                                   fontWeight: FontWeight.w700,
                                   color: QoffaColors.primaryNavy,
                                 ),
@@ -590,6 +633,10 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Today's Spend / Budget Card at the very top
+                    _buildBudgetProgressCard(l10n),
+                    const SizedBox(height: 16),
+
                     // Main Container with standard white background, radius, outline
                     Container(
                       width: double.infinity,
@@ -624,9 +671,7 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                     ),
                     const SizedBox(height: 16),
                     _buildAddSomethingElseSection(l10n),
-                    const SizedBox(height: 16),
-                    _buildBudgetProgressCard(l10n),
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 140),
                   ],
                 ),
               ),
@@ -634,7 +679,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildAddItemRowButton(AppLocalizations l10n) {
@@ -669,8 +715,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
             child: Text(
               l10n.addItem,
               style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 15.5,
+                fontFamily: QoffaFontFamily.body,
+                fontSize: 16.5,
                 fontWeight: FontWeight.w700,
                 color: QoffaColors.primaryNavy,
               ),
@@ -727,8 +773,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 16,
+                fontFamily: QoffaFontFamily.body,
+                fontSize: QoffaFontSize.titleSmall,
                 fontWeight: FontWeight.w800,
                 color: QoffaColors.primaryNavy,
               ),
@@ -829,8 +875,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 11,
+                          fontFamily: QoffaFontFamily.body,
+                          fontSize: QoffaFontSize.caption,
                           fontWeight: FontWeight.w600,
                           color: QoffaColors.secondarySage,
                           height: 1.1,
@@ -841,13 +887,13 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: QoffaAnimatedCounter(
-                          key: ValueKey<String>(
-                            'last-$_itemPickEpoch',
+                          key: const ValueKey<String>(
+                            'add-screen-last-price-counter',
                           ),
                           value: _lastPriceDzd,
                           style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 17,
+                            fontFamily: QoffaFontFamily.body,
+                            fontSize: 18.5,
                             fontWeight: FontWeight.w900,
                             color: QoffaColors.primaryNavy,
                             letterSpacing: -0.3,
@@ -893,8 +939,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 11,
+                            fontFamily: QoffaFontFamily.body,
+                            fontSize: QoffaFontSize.caption,
                             fontWeight: FontWeight.w600,
                             color: QoffaColors.secondarySage,
                             height: 1.1,
@@ -911,8 +957,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                             value: todayAnimatedValue,
                             prefix: todayPrefix,
                             style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 17,
+                              fontFamily: QoffaFontFamily.body,
+                              fontSize: 18.5,
                               fontWeight: FontWeight.w900,
                               color: todayColor,
                               letterSpacing: -0.3,
@@ -980,8 +1026,9 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                     Text(
                       l10n.today,
                       style: const TextStyle(
-                        fontFamily: 'Hero Sandwich Pro',
-                        fontSize: 22,
+                        fontFamily: QoffaFontFamily.display,
+                        fontFamilyFallback: QoffaFontFamily.fallback,
+                        fontSize: 24,
                         fontWeight: FontWeight.w900,
                         color: QoffaColors.primaryNavy,
                       ),
@@ -992,8 +1039,9 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                       autofocus: true,
                       keyboardType: TextInputType.number,
                       style: const TextStyle(
-                        fontFamily: 'Hero Sandwich Pro',
-                        fontSize: 22,
+                        fontFamily: QoffaFontFamily.display,
+                        fontFamilyFallback: QoffaFontFamily.fallback,
+                        fontSize: 23.5,
                         fontWeight: FontWeight.w800,
                         color: QoffaColors.primaryNavy,
                       ),
@@ -1001,8 +1049,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                         labelText: l10n.today,
                         suffixText: 'DA',
                         suffixStyle: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 16,
+                          fontFamily: QoffaFontFamily.body,
+                          fontSize: 17,
                           fontWeight: FontWeight.w700,
                           color: QoffaColors.secondarySage,
                         ),
@@ -1036,8 +1084,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                             prefix: diff > 0 ? '+' : '',
                             suffix: ' DA (${l10n.todayDiff})',
                             style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 14,
+                              fontFamily: QoffaFontFamily.body,
+                              fontSize: QoffaFontSize.body,
                               fontWeight: FontWeight.w700,
                               color: diff > 0
                                   ? QoffaColors.warningCoral
@@ -1235,8 +1283,9 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                     Text(
                       l10n.addItem,
                       style: const TextStyle(
-                        fontFamily: 'Hero Sandwich Pro',
-                        fontSize: 24,
+                        fontFamily: QoffaFontFamily.display,
+                        fontFamilyFallback: QoffaFontFamily.fallback,
+                        fontSize: QoffaFontSize.headlineSmall,
                         fontWeight: FontWeight.w900,
                         color: QoffaColors.primaryNavy,
                       ),
@@ -1248,8 +1297,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                       autofocus: true,
                       textCapitalization: TextCapitalization.sentences,
                       style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 16,
+                        fontFamily: QoffaFontFamily.body,
+                        fontSize: 17,
                         fontWeight: FontWeight.w700,
                         color: QoffaColors.primaryNavy,
                       ),
@@ -1298,8 +1347,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                                           Text(
                                             l10n.cancel,
                                             style: const TextStyle(
-                                              fontFamily: 'Inter',
-                                              fontSize: 11,
+                                              fontFamily: QoffaFontFamily.body,
+                                              fontSize: QoffaFontSize.micro,
                                               fontWeight: FontWeight.w700,
                                               color: QoffaColors.actionGreen,
                                             ),
@@ -1358,8 +1407,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                                   title: Text(
                                     p.name,
                                     style: const TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 14,
+                                      fontFamily: QoffaFontFamily.body,
+                                      fontSize: QoffaFontSize.body,
                                       fontWeight: FontWeight.w700,
                                       color: QoffaColors.primaryNavy,
                                     ),
@@ -1368,7 +1417,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                                       ? Text(
                                           '${p.lastPriceDzd} DA',
                                           style: const TextStyle(
-                                            fontSize: 12,
+                                            fontFamily: QoffaFontFamily.body,
+                                            fontSize: QoffaFontSize.captionMedium,
                                             fontWeight: FontWeight.w600,
                                             color: QoffaColors.actionGreen,
                                           ),
@@ -1424,8 +1474,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                                             searchController.text.trim(),
                                           ),
                                           style: const TextStyle(
-                                            fontFamily: 'Inter',
-                                            fontSize: 13,
+                                            fontFamily: QoffaFontFamily.body,
+                                            fontSize: QoffaFontSize.bodySmall,
                                             fontWeight: FontWeight.w700,
                                             color: QoffaColors.actionGreen,
                                           ),
@@ -1454,8 +1504,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                           Text(
                             l10n.recentPickedFoods,
                             style: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 14,
+                              fontFamily: QoffaFontFamily.body,
+                              fontSize: QoffaFontSize.body,
                               fontWeight: FontWeight.w800,
                               color: QoffaColors.primaryNavy,
                             ),
@@ -1509,8 +1559,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                                     child: Text(
                                       foodName,
                                       style: const TextStyle(
-                                        fontFamily: 'Inter',
-                                        fontSize: 14.5,
+                                        fontFamily: QoffaFontFamily.body,
+                                        fontSize: 15.5,
                                         fontWeight: FontWeight.w700,
                                         color: QoffaColors.primaryNavy,
                                       ),
@@ -1595,8 +1645,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
         Text(
           l10n.unit,
           style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 13,
+            fontFamily: QoffaFontFamily.body,
+            fontSize: QoffaFontSize.bodySmall,
             fontWeight: FontWeight.w700,
             color: QoffaColors.primaryNavy,
           ),
@@ -1633,8 +1683,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 15,
+                      fontFamily: QoffaFontFamily.body,
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: QoffaColors.primaryNavy,
                     ),
@@ -1672,8 +1722,10 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
       label: l10n.pricePerUnit,
       controller: _unitPriceController,
       focusNode: _priceFocusNode,
+      isArabic: l10n.isArabic,
+      hintText: l10n.isArabic ? '000،000 ...' : '000,000 ...',
       onChanged: (val) {
-        final clean = val.replaceAll(',', '').trim();
+        final clean = QoffaNumberFormat.clean(val);
         if (_priceController.text != clean) {
           _priceController.text = clean;
         }
@@ -1688,8 +1740,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
         Text(
           l10n.store,
           style: const TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 13,
+            fontFamily: QoffaFontFamily.body,
+            fontSize: QoffaFontSize.bodySmall,
             fontWeight: FontWeight.w700,
             color: QoffaColors.primaryNavy,
           ),
@@ -1724,8 +1776,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 15,
+                    fontFamily: QoffaFontFamily.body,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: _selectedStoreName.isEmpty
                         ? QoffaColors.secondarySage
@@ -1746,42 +1798,126 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
   }
 
   Widget _buildActionButtonsRow(AppLocalizations l10n) {
-    return Row(
-      children: [
-        // Left button: Buy later (Same outline style as Add item button)
-        Expanded(
-          child: QoffaTactilePressable.outline(
-            onTap: _handleBuyLater,
-            height: 52.0,
-            borderRadius: BorderRadius.circular(16),
-            backgroundColor: const Color(0xFFF4FAF6),
-            borderColor: QoffaColors.softBorder,
-            hoverBackgroundColor: QoffaColors.mintSurfaceTint,
-            hoverBorderColor: QoffaColors.actionGreen,
-            textColor: QoffaColors.primaryNavy,
-            iconColor: QoffaColors.actionGreen,
-            icon: Icons.schedule_rounded,
-            label: l10n.buyLaterAction,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final buyLaterWidth =
+            _isBoughtAnimating ? 0.0 : (availableWidth - 12) / 2;
+
+        return SizedBox(
+          key: _actionRowKey,
+          height: 52.0,
+          child: Row(
+            children: [
+              // Left button: Buy later (collapses and fades out during bought animation)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeInOutCubic,
+                width: buyLaterWidth,
+                child: buyLaterWidth == 0.0
+                    ? const SizedBox.shrink()
+                    : ClipRect(
+                        child: OverflowBox(
+                          minWidth: (availableWidth - 12) / 2,
+                          maxWidth: (availableWidth - 12) / 2,
+                          alignment: Alignment.centerLeft,
+                          child: QoffaTactilePressable.outline(
+                            enabled: !_isBoughtAnimating,
+                            onTap: () {
+                              if (_isBoughtAnimating) return;
+                              _handleBuyLater();
+                            },
+                            height: 52.0,
+                            borderRadius: BorderRadius.circular(16),
+                            backgroundColor: const Color(0xFFF4FAF6),
+                            borderColor: QoffaColors.softBorder,
+                            hoverBackgroundColor: QoffaColors.mintSurfaceTint,
+                            hoverBorderColor: QoffaColors.actionGreen,
+                            textColor: QoffaColors.primaryNavy,
+                            iconColor: QoffaColors.actionGreen,
+                            icon: Icons.schedule_rounded,
+                            label: l10n.buyLaterAction,
+                          ),
+                        ),
+                      ),
+              ),
+              if (!_isBoughtAnimating) const SizedBox(width: 12),
+              // Right button: Bought (expands on whole row with checkmark and particle burst)
+              Expanded(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeInOutCubic,
+                  height: 52.0,
+                  decoration: BoxDecoration(
+                    color: QoffaColors.actionGreen,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _isBoughtAnimating ? null : _handleBought,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Center(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 220),
+                          transitionBuilder: (child, animation) =>
+                              ScaleTransition(
+                            scale: animation,
+                            child: FadeTransition(
+                              opacity: animation,
+                              child: child,
+                            ),
+                          ),
+                          child: _isBoughtAnimating
+                              ? const Icon(
+                                  Icons.check_rounded,
+                                  key: ValueKey('checkmark_anim'),
+                                  color: Colors.white,
+                                  size: 28,
+                                )
+                              : Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 6),
+                                  child: Row(
+                                    key: const ValueKey('normal_bought_content'),
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.shopping_cart_rounded,
+                                        color: Colors.white,
+                                        size: 19,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            l10n.boughtAction,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontFamily: QoffaFontFamily.body,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(width: 12),
-        // Right button: Bought (Green themed fill)
-        Expanded(
-          child: QoffaTactilePressable.filled(
-            onTap: _handleBought,
-            height: 52.0,
-            borderRadius: BorderRadius.circular(16),
-            backgroundColor: QoffaColors.actionGreen,
-            borderColor: QoffaColors.actionGreen,
-            hoverBackgroundColor: QoffaColors.pressedGreen,
-            hoverBorderColor: QoffaColors.pressedGreen,
-            textColor: Colors.white,
-            iconColor: Colors.white,
-            icon: Icons.shopping_cart_rounded,
-            label: l10n.boughtAction,
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -1828,8 +1964,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                     Text(
                       store.name,
                       style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14.5,
+                        fontFamily: QoffaFontFamily.body,
+                        fontSize: 15.5,
                         fontWeight: FontWeight.w700,
                         color: QoffaColors.primaryNavy,
                       ),
@@ -1841,8 +1977,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                             Text(
                               type.localizedName(l10n.languageCode),
                               style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 12,
+                                fontFamily: QoffaFontFamily.body,
+                                fontSize: QoffaFontSize.captionMedium,
                                 fontWeight: FontWeight.w600,
                                 color: QoffaColors.actionGreen,
                               ),
@@ -1858,8 +1994,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 12,
+                                  fontFamily: QoffaFontFamily.body,
+                                  fontSize: QoffaFontSize.captionMedium,
                                   fontWeight: FontWeight.w500,
                                   color: QoffaColors.secondarySage,
                                 ),
@@ -1873,8 +2009,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                             Text(
                               '★ ${store.rating}',
                               style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 12,
+                                fontFamily: QoffaFontFamily.body,
+                                fontSize: QoffaFontSize.captionMedium,
                                 fontWeight: FontWeight.w700,
                                 color: QoffaColors.goldAccent,
                               ),
@@ -1909,10 +2045,11 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
         }
       },
       quickActionWidget: Builder(
-        builder: (sheetCtx) => QoffaTactilePressable.outline(
+        builder: (sheetCtx) => QoffaTactilePressable.filled(
           height: 48,
           width: double.infinity,
           borderRadius: BorderRadius.circular(14),
+          backgroundColor: QoffaColors.actionGreen,
           label: l10n.newStore,
           icon: Icons.add_rounded,
           onTap: () async {
@@ -1969,8 +2106,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14.5,
+                        fontFamily: QoffaFontFamily.body,
+                        fontSize: 15.5,
                         fontWeight: FontWeight.w700,
                         color: QoffaColors.primaryNavy,
                       ),
@@ -1985,8 +2122,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 11.5,
+                                  fontFamily: QoffaFontFamily.body,
+                                  fontSize: QoffaFontSize.caption,
                                   fontWeight: FontWeight.w500,
                                   color: QoffaColors.secondarySage,
                                 ),
@@ -1997,15 +2134,15 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                               ' · ',
                               style: TextStyle(
                                 color: QoffaColors.secondarySage,
-                                fontSize: 11.5,
+                                fontSize: QoffaFontSize.caption,
                               ),
                             ),
                           if (store.rating != null)
                             Text(
                               '★ ${store.rating}',
                               style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 11.5,
+                                fontFamily: QoffaFontFamily.body,
+                                fontSize: QoffaFontSize.caption,
                                 fontWeight: FontWeight.w700,
                                 color: QoffaColors.goldAccent,
                               ),
@@ -2112,11 +2249,11 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
       }
     }
 
-    // 4. Randomly pick 4 from the pool for 2x2 grid
+    // 4. Randomly pick 3 from the pool for 1x1x1 vertical list
     final shuffled = List<Product>.from(pool)..shuffle(Random());
     if (mounted) {
       setState(() {
-        _quickAddSuggestions = shuffled.take(4).toList();
+        _quickAddSuggestions = shuffled.take(3).toList();
       });
     }
   }
@@ -2193,8 +2330,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 16.5,
+                    fontFamily: QoffaFontFamily.body,
+                    fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: QoffaColors.primaryNavy,
                   ),
@@ -2220,8 +2357,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                     Text(
                       l10n.refresh,
                       style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13.5,
+                        fontFamily: QoffaFontFamily.body,
+                        fontSize: 14.5,
                         fontWeight: FontWeight.w700,
                         color: QoffaColors.actionGreen,
                       ),
@@ -2234,27 +2371,11 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
           const SizedBox(height: 12),
           Column(
             children: [
-              for (int r = 0; r < _quickAddSuggestions.length; r += 2) ...[
-                if (r > 0) const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildAnimatedQuickAddCard(
-                        _quickAddSuggestions[r],
-                        index: r,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    if (r + 1 < _quickAddSuggestions.length)
-                      Expanded(
-                        child: _buildAnimatedQuickAddCard(
-                          _quickAddSuggestions[r + 1],
-                          index: r + 1,
-                        ),
-                      )
-                    else
-                      const Spacer(),
-                  ],
+              for (int i = 0; i < _quickAddSuggestions.length; i++) ...[
+                if (i > 0) const SizedBox(height: 10),
+                _buildAnimatedQuickAddCard(
+                  _quickAddSuggestions[i],
+                  index: i,
                 ),
               ],
             ],
@@ -2327,8 +2448,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                fontFamily: 'Inter',
-                fontSize: 13.5,
+                fontFamily: QoffaFontFamily.body,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w700,
                 color: QoffaColors.primaryNavy,
               ),
@@ -2421,8 +2542,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 12,
+                        fontFamily: QoffaFontFamily.body,
+                        fontSize: QoffaFontSize.captionMedium,
                         fontWeight: FontWeight.w600,
                         color: QoffaColors.secondarySage,
                       ),
@@ -2434,8 +2555,9 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                       child: QoffaAnimatedCounter(
                         value: currentTodaySpent,
                         style: const TextStyle(
-                          fontFamily: 'Hero Sandwich Pro',
-                          fontSize: 19,
+                          fontFamily: QoffaFontFamily.display,
+                          fontFamilyFallback: QoffaFontFamily.fallback,
+                          fontSize: 20.5,
                           fontWeight: FontWeight.w900,
                           color: QoffaColors.primaryNavy,
                           letterSpacing: -0.3,
@@ -2487,8 +2609,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 12,
+                        fontFamily: QoffaFontFamily.body,
+                        fontSize: QoffaFontSize.captionMedium,
                         fontWeight: FontWeight.w600,
                         color: QoffaColors.secondarySage,
                       ),
@@ -2500,8 +2622,9 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                       child: QoffaAnimatedCounter(
                         value: remainingBudget,
                         style: TextStyle(
-                          fontFamily: 'Hero Sandwich Pro',
-                          fontSize: 19,
+                          fontFamily: QoffaFontFamily.display,
+                          fontFamilyFallback: QoffaFontFamily.fallback,
+                          fontSize: 20.5,
                           fontWeight: FontWeight.w900,
                           color: isOverLimit
                               ? QoffaColors.warningCoral
@@ -2568,8 +2691,8 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
+                    fontFamily: QoffaFontFamily.body,
+                    fontSize: QoffaFontSize.captionMedium,
                     fontWeight: FontWeight.w700,
                     color: QoffaColors.primaryNavy,
                   ),
@@ -2578,12 +2701,12 @@ class _AddPurchaseScreenState extends ConsumerState<AddPurchaseScreen>
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  '${monthlyBudget.toString().replaceAllMapped(RegExp(r"(\d{1,3})(?=(\d{3})+(?!\d))"), (m) => "${m[1]},")} DA',
+                  '${QoffaNumberFormat.format(monthlyBudget, isArabic: l10n.isArabic)} DA',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 12,
+                    fontFamily: QoffaFontFamily.body,
+                    fontSize: QoffaFontSize.captionMedium,
                     fontWeight: FontWeight.w600,
                     color: QoffaColors.secondarySage,
                   ),
@@ -2619,8 +2742,8 @@ class _PriceContextItem extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            fontFamily: 'Inter',
-            fontSize: 12.5,
+            fontFamily: QoffaFontFamily.body,
+            fontSize: QoffaFontSize.captionMedium,
             fontWeight: FontWeight.w700,
             color: color == QoffaColors.skyBlue ? QoffaColors.primaryNavy : color,
           ),

@@ -6,13 +6,27 @@ import 'qoffa_tokens.dart';
 class QoffaTheme {
   QoffaTheme._();
 
-  static ThemeData get lightTheme {
+  static ThemeData get lightTheme => lightThemeFor();
+
+  static ThemeData lightThemeFor([Locale? locale]) {
+    final isArabic = (locale?.languageCode ?? 'ar') == 'ar';
+    final primaryFont =
+        isArabic ? QoffaFontFamily.arabic : QoffaFontFamily.latinBody;
+    final fallbackFonts = isArabic
+        ? const [QoffaFontFamily.latinBody, QoffaFontFamily.latinDisplay]
+        : const [QoffaFontFamily.arabic];
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       primaryColor: QoffaColors.actionGreen,
       scaffoldBackgroundColor: QoffaColors.paleMintBackground,
-      fontFamily: 'Inter',
+      fontFamily: primaryFont,
+      fontFamilyFallback: fallbackFonts,
+      textTheme: ThemeData.light().textTheme.apply(
+        fontFamily: primaryFont,
+        fontFamilyFallback: fallbackFonts,
+      ),
       colorScheme: const ColorScheme.light(
         primary: QoffaColors.actionGreen,
         onPrimary: QoffaColors.whiteSurface,
@@ -61,13 +75,15 @@ class QoffaTheme {
           horizontal: 16,
           vertical: 15,
         ),
-        labelStyle: const TextStyle(
-          fontFamily: 'Inter',
+        labelStyle: TextStyle(
+          fontFamily: primaryFont,
+          fontFamilyFallback: fallbackFonts,
           color: QoffaColors.secondarySage,
           fontWeight: FontWeight.w600,
         ),
         hintStyle: TextStyle(
-          fontFamily: 'Inter',
+          fontFamily: primaryFont,
+          fontFamilyFallback: fallbackFonts,
           color: QoffaColors.secondarySage.withValues(alpha: 0.72),
           fontWeight: FontWeight.w500,
         ),
@@ -129,12 +145,14 @@ class QoffaTheme {
           TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
         },
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          fontFamily: 'Hero Sandwich Pro',
+          fontFamily:
+              isArabic ? QoffaFontFamily.arabic : QoffaFontFamily.latinDisplay,
+          fontFamilyFallback: fallbackFonts,
           fontSize: 26,
           fontWeight: FontWeight.w800,
           color: QoffaColors.primaryNavy,
@@ -143,13 +161,27 @@ class QoffaTheme {
     );
   }
 
-  static ThemeData get darkTheme {
+  static ThemeData get darkTheme => darkThemeFor();
+
+  static ThemeData darkThemeFor([Locale? locale]) {
+    final isArabic = (locale?.languageCode ?? 'ar') == 'ar';
+    final primaryFont =
+        isArabic ? QoffaFontFamily.arabic : QoffaFontFamily.latinBody;
+    final fallbackFonts = isArabic
+        ? const [QoffaFontFamily.latinBody, QoffaFontFamily.latinDisplay]
+        : const [QoffaFontFamily.arabic];
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       primaryColor: QoffaColors.brandGreen,
       scaffoldBackgroundColor: QoffaColors.darkBackground,
-      fontFamily: 'Inter',
+      fontFamily: primaryFont,
+      fontFamilyFallback: fallbackFonts,
+      textTheme: ThemeData.dark().textTheme.apply(
+        fontFamily: primaryFont,
+        fontFamilyFallback: fallbackFonts,
+      ),
       colorScheme: const ColorScheme.dark(
         primary: QoffaColors.brandGreen,
         onPrimary: QoffaColors.primaryNavy,
@@ -198,6 +230,18 @@ class QoffaTheme {
           horizontal: 16,
           vertical: 15,
         ),
+        labelStyle: TextStyle(
+          fontFamily: primaryFont,
+          fontFamilyFallback: fallbackFonts,
+          color: QoffaColors.secondarySage,
+          fontWeight: FontWeight.w600,
+        ),
+        hintStyle: TextStyle(
+          fontFamily: primaryFont,
+          fontFamilyFallback: fallbackFonts,
+          color: QoffaColors.secondarySage.withValues(alpha: 0.72),
+          fontWeight: FontWeight.w500,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(QoffaTokens.radiusFields),
           borderSide: const BorderSide(color: QoffaColors.darkBorder),
@@ -232,12 +276,14 @@ class QoffaTheme {
           ),
         ),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          fontFamily: 'Hero Sandwich Pro',
+          fontFamily:
+              isArabic ? QoffaFontFamily.arabic : QoffaFontFamily.latinDisplay,
+          fontFamilyFallback: fallbackFonts,
           fontSize: 26,
           fontWeight: FontWeight.w800,
           color: QoffaColors.darkTextPrimary,

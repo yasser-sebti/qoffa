@@ -13,6 +13,17 @@ abstract class SettingsRepository {
   Future<String> exportDataAsJson();
   Future<String> exportPurchasesAsCsv();
   Future<bool> importDataFromJson(String jsonContent);
+
+  // Erase Data methods
+  Future<void> eraseAllData();
+  Future<int> erasePurchasesAndActivity({DateTime? from, DateTime? to});
+  Future<int> eraseLaterBuyItems({DateTime? from, DateTime? to});
+  Future<int> eraseStores({List<String>? specificStoreIds, bool all = false});
+  Future<int> eraseCustomFoods({List<String>? specificProductIds, bool all = false});
+  Future<({int purchasesCount, int notesCount})> countPurchasesAndActivity({DateTime? from, DateTime? to});
+  Future<int> countLaterBuyItems({DateTime? from, DateTime? to});
+  Stream<List<Store>> watchAllStores();
+  Stream<List<Product>> watchCustomProducts();
 }
 
 class DriftSettingsRepository implements SettingsRepository {
@@ -225,6 +236,307 @@ class DriftSettingsRepository implements SettingsRepository {
       return false;
     }
   }
+
+  // --- Erase Data Implementation ---
+
+  @override
+  Future<void> eraseAllData() async {
+    await _db.transaction(() async {
+      await _db.delete(_db.notePurchaseLinks).go();
+      await _db.delete(_db.noteProductLinks).go();
+      await _db.delete(_db.noteTags).go();
+      await _db.delete(_db.notes).go();
+      await _db.delete(_db.shoppingListItems).go();
+      await _db.delete(_db.shoppingLists).go();
+      await _db.delete(_db.reminders).go();
+      await _db.delete(_db.laterBuyItems).go();
+      await _db.delete(_db.purchases).go();
+      await _db.delete(_db.productAliases).go();
+      await _db.delete(_db.productConversions).go();
+      await (_db.delete(_db.products)
+            ..where((t) =>
+                t.id.like('premade_%').not() & t.id.like('sys_%').not()))
+          .go();
+      await _db.delete(_db.stores).go();
+    });
+  }
+
+  @override
+  Future<int> erasePurchasesAndActivity({DateTime? from, DateTime? to}) async {
+    return await _db.transaction(() async {
+      final purchaseQuery = _db.select(_db.purchases);
+      if (from != null && to != null) {
+        purchaseQuery.where((t) =>
+            t.purchasedAt.isBiggerOrEqualValue(from) &
+            t.purchasedAt.isSmallerOrEqualValue(to));
+      } else if (from != null) {
+        purchaseQuery.where((t) => t.purchasedAt.isBiggerOrEqualValue(from));
+      } else if (to != null) {
+        purchaseQuery.where((t) => t.purchasedAt.isSmallerOrEqualValue(to));
+      }
+      final purchasesToDelete = await purchaseQuery.get();
+      final purchaseIds = purchasesToDelete.map((p) => p.id).toList();
+
+      if (purchaseIds.isNotEmpty) {
+        await (_db.delete(_db.notePurchaseLinks)
+              ..where((t) => t.purchaseId.isIn(purchaseIds)))
+            .go();
+        await (_db.update(_db.laterBuyItems)
+              ..where((t) => t.resolvedPurchaseId.isIn(purchaseIds)))
+            .write(
+          const LaterBuyItemsCompanion(resolvedPurchaseId: Value(null)),
+        );
+        await (_db.update(_db.shoppingListItems)
+              ..where((t) => t.convertedPurchaseId.isIn(purchaseIds)))
+            .write(
+          const ShoppingListItemsCompanion(convertedPurchaseId: Value(null)),
+        );
+        await (_db.delete(_db.purchases)
+              ..where((t) => t.id.isIn(purchaseIds)))
+            .go();
+      }
+
+      final noteQuery = _db.select(_db.notes);
+      if (from != null && to != null) {
+        noteQuery.where((t) =>
+            t.eventAt.isBiggerOrEqualValue(from) &
+            t.eventAt.isSmallerOrEqualValue(to));
+      } else if (from != null) {
+        noteQuery.where((t) => t.eventAt.isBiggerOrEqualValue(from));
+      } else if (to != null) {
+        noteQuery.where((t) => t.eventAt.isSmallerOrEqualValue(to));
+      }
+      final notesToDelete = await noteQuery.get();
+      final noteIds = notesToDelete.map((n) => n.id).toList();
+
+      if (noteIds.isNotEmpty) {
+        await (_db.delete(_db.noteTags)
+              ..where((t) => t.noteId.isIn(noteIds)))
+            .go();
+        await (_db.delete(_db.noteProductLinks)
+              ..where((t) => t.noteId.isIn(noteIds)))
+            .go();
+        await (_db.delete(_db.notePurchaseLinks)
+              ..where((t) => t.noteId.isIn(noteIds)))
+            .go();
+        await (_db.delete(_db.notes)..where((t) => t.id.isIn(noteIds))).go();
+      }
+
+      return purchaseIds.length + noteIds.length;
+    });
+  }
+
+  @override
+  Future<int> eraseLaterBuyItems({DateTime? from, DateTime? to}) async {
+    return await _db.transaction(() async {
+      final query = _db.select(_db.laterBuyItems);
+      if (from != null && to != null) {
+        query.where((t) =>
+            (t.createdAt.isBiggerOrEqualValue(from) &
+                t.createdAt.isSmallerOrEqualValue(to)) |
+            (t.resolvedAt.isNotNull() &
+                t.resolvedAt.isBiggerOrEqualValue(from) &
+                t.resolvedAt.isSmallerOrEqualValue(to)));
+      } else if (from != null) {
+        query.where((t) =>
+            t.createdAt.isBiggerOrEqualValue(from) |
+            (t.resolvedAt.isNotNull() &
+                t.resolvedAt.isBiggerOrEqualValue(from)));
+      } else if (to != null) {
+        query.where((t) =>
+            t.createdAt.isSmallerOrEqualValue(to) |
+            (t.resolvedAt.isNotNull() &
+                t.resolvedAt.isSmallerOrEqualValue(to)));
+      }
+      final items = await query.get();
+      final ids = items.map((i) => i.id).toList();
+      if (ids.isNotEmpty) {
+        await (_db.delete(_db.reminders)
+              ..where((t) =>
+                  t.relatedType.equals('later_buy') & t.relatedId.isIn(ids)))
+            .go();
+        await (_db.delete(_db.laterBuyItems)
+              ..where((t) => t.id.isIn(ids)))
+            .go();
+      }
+      return ids.length;
+    });
+  }
+
+  @override
+  Future<int> eraseStores({
+    List<String>? specificStoreIds,
+    bool all = false,
+  }) async {
+    return await _db.transaction(() async {
+      List<String> idsToDelete = [];
+      if (all) {
+        final allStores = await _db.select(_db.stores).get();
+        idsToDelete = allStores.map((s) => s.id).toList();
+      } else if (specificStoreIds != null && specificStoreIds.isNotEmpty) {
+        idsToDelete = specificStoreIds;
+      }
+      if (idsToDelete.isEmpty) return 0;
+
+      await (_db.update(_db.purchases)
+            ..where((t) => t.storeId.isIn(idsToDelete)))
+          .write(
+        const PurchasesCompanion(storeId: Value(null)),
+      );
+      await (_db.update(_db.laterBuyItems)
+            ..where((t) => t.storeId.isIn(idsToDelete)))
+          .write(
+        const LaterBuyItemsCompanion(storeId: Value(null)),
+      );
+
+      final count = await (_db.delete(_db.stores)
+            ..where((t) => t.id.isIn(idsToDelete)))
+          .go();
+      return count;
+    });
+  }
+
+  @override
+  Future<int> eraseCustomFoods({
+    List<String>? specificProductIds,
+    bool all = false,
+  }) async {
+    return await _db.transaction(() async {
+      List<String> idsToDelete = [];
+      if (all) {
+        final customProds = await (_db.select(_db.products)
+              ..where((t) =>
+                  t.id.like('premade_%').not() & t.id.like('sys_%').not()))
+            .get();
+        idsToDelete = customProds.map((p) => p.id).toList();
+      } else if (specificProductIds != null && specificProductIds.isNotEmpty) {
+        idsToDelete = specificProductIds;
+      }
+      if (idsToDelete.isEmpty) return 0;
+
+      await (_db.delete(_db.noteProductLinks)
+            ..where((t) => t.productId.isIn(idsToDelete)))
+          .go();
+      await (_db.delete(_db.productAliases)
+            ..where((t) => t.productId.isIn(idsToDelete)))
+          .go();
+      await (_db.delete(_db.productConversions)
+            ..where((t) => t.productId.isIn(idsToDelete)))
+          .go();
+      await (_db.delete(_db.shoppingListItems)
+            ..where((t) => t.productId.isIn(idsToDelete)))
+          .go();
+
+      final laterBuys = await (_db.select(_db.laterBuyItems)
+            ..where((t) => t.productId.isIn(idsToDelete)))
+          .get();
+      final laterBuyIds = laterBuys.map((l) => l.id).toList();
+      if (laterBuyIds.isNotEmpty) {
+        await (_db.delete(_db.reminders)
+              ..where((t) =>
+                  t.relatedType.equals('later_buy') &
+                  t.relatedId.isIn(laterBuyIds)))
+            .go();
+        await (_db.delete(_db.laterBuyItems)
+              ..where((t) => t.id.isIn(laterBuyIds)))
+            .go();
+      }
+
+      final purchases = await (_db.select(_db.purchases)
+            ..where((t) => t.productId.isIn(idsToDelete)))
+          .get();
+      final purchaseIds = purchases.map((p) => p.id).toList();
+      if (purchaseIds.isNotEmpty) {
+        await (_db.delete(_db.notePurchaseLinks)
+              ..where((t) => t.purchaseId.isIn(purchaseIds)))
+            .go();
+        await (_db.delete(_db.purchases)
+              ..where((t) => t.id.isIn(purchaseIds)))
+            .go();
+      }
+
+      final count = await (_db.delete(_db.products)
+            ..where((t) => t.id.isIn(idsToDelete)))
+          .go();
+      return count;
+    });
+  }
+
+  @override
+  Future<({int purchasesCount, int notesCount})> countPurchasesAndActivity({
+    DateTime? from,
+    DateTime? to,
+  }) async {
+    final purchaseQuery = _db.select(_db.purchases);
+    if (from != null && to != null) {
+      purchaseQuery.where((t) =>
+          t.purchasedAt.isBiggerOrEqualValue(from) &
+          t.purchasedAt.isSmallerOrEqualValue(to));
+    } else if (from != null) {
+      purchaseQuery.where((t) => t.purchasedAt.isBiggerOrEqualValue(from));
+    } else if (to != null) {
+      purchaseQuery.where((t) => t.purchasedAt.isSmallerOrEqualValue(to));
+    }
+    final purchases = await purchaseQuery.get();
+
+    final noteQuery = _db.select(_db.notes);
+    if (from != null && to != null) {
+      noteQuery.where((t) =>
+          t.eventAt.isBiggerOrEqualValue(from) &
+          t.eventAt.isSmallerOrEqualValue(to));
+    } else if (from != null) {
+      noteQuery.where((t) => t.eventAt.isBiggerOrEqualValue(from));
+    } else if (to != null) {
+      noteQuery.where((t) => t.eventAt.isSmallerOrEqualValue(to));
+    }
+    final notes = await noteQuery.get();
+
+    return (purchasesCount: purchases.length, notesCount: notes.length);
+  }
+
+  @override
+  Future<int> countLaterBuyItems({DateTime? from, DateTime? to}) async {
+    final query = _db.select(_db.laterBuyItems);
+    if (from != null && to != null) {
+      query.where((t) =>
+          (t.createdAt.isBiggerOrEqualValue(from) &
+              t.createdAt.isSmallerOrEqualValue(to)) |
+          (t.resolvedAt.isNotNull() &
+              t.resolvedAt.isBiggerOrEqualValue(from) &
+              t.resolvedAt.isSmallerOrEqualValue(to)));
+    } else if (from != null) {
+      query.where((t) =>
+          t.createdAt.isBiggerOrEqualValue(from) |
+          (t.resolvedAt.isNotNull() &
+              t.resolvedAt.isBiggerOrEqualValue(from)));
+    } else if (to != null) {
+      query.where((t) =>
+          t.createdAt.isSmallerOrEqualValue(to) |
+          (t.resolvedAt.isNotNull() &
+              t.resolvedAt.isSmallerOrEqualValue(to)));
+    }
+    final items = await query.get();
+    return items.length;
+  }
+
+  @override
+  Stream<List<Store>> watchAllStores() {
+    return (_db.select(_db.stores)
+          ..where((t) => t.deletedAt.isNull())
+          ..orderBy([(t) => OrderingTerm(expression: t.name)]))
+        .watch();
+  }
+
+  @override
+  Stream<List<Product>> watchCustomProducts() {
+    return (_db.select(_db.products)
+          ..where((t) =>
+              t.deletedAt.isNull() &
+              t.id.like('premade_%').not() &
+              t.id.like('sys_%').not())
+          ..orderBy([(t) => OrderingTerm(expression: t.name)]))
+        .watch();
+  }
 }
 
 final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
@@ -234,4 +546,12 @@ final settingsRepositoryProvider = Provider<SettingsRepository>((ref) {
 
 final userProfileProvider = StreamProvider<Profile?>((ref) {
   return ref.watch(settingsRepositoryProvider).watchProfile();
+});
+
+final eraseStoresProvider = StreamProvider<List<Store>>((ref) {
+  return ref.watch(settingsRepositoryProvider).watchAllStores();
+});
+
+final eraseCustomProductsProvider = StreamProvider<List<Product>>((ref) {
+  return ref.watch(settingsRepositoryProvider).watchCustomProducts();
 });

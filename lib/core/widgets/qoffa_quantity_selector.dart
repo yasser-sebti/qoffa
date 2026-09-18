@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/qoffa_colors.dart';
+import '../../app/theme/qoffa_tokens.dart';
 import 'qoffa_tactile_pressable.dart';
 
 /// QoffaQuantitySelector: Reusable template widget for quantity increment/decrement.
@@ -165,8 +166,8 @@ class _QoffaQuantitySelectorState extends State<QoffaQuantitySelector> {
                     _formatValue(widget.value),
                     key: ValueKey<double>(widget.value),
                     style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 18,
+                      fontFamily: QoffaFontFamily.body,
+                      fontSize: QoffaFontSize.titleMedium,
                       fontWeight: FontWeight.w900,
                       color: QoffaColors.primaryNavy,
                     ),
@@ -211,8 +212,8 @@ class _QoffaQuantitySelectorState extends State<QoffaQuantitySelector> {
           Text(
             widget.label!,
             style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 13,
+              fontFamily: QoffaFontFamily.body,
+              fontSize: QoffaFontSize.bodySmall,
               fontWeight: FontWeight.w700,
               color: QoffaColors.primaryNavy,
             ),

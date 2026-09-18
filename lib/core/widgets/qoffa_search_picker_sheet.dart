@@ -195,8 +195,8 @@ class _QoffaSearchPickerSheetState<T> extends State<QoffaSearchPickerSheet<T>> {
           Text(
             widget.title,
             style: const TextStyle(
-              fontFamily: 'Hero Sandwich Pro',
-              fontSize: 24,
+              fontFamily: QoffaFontFamily.display,
+              fontSize: QoffaFontSize.headlineSmall,
               fontWeight: FontWeight.w900,
               color: QoffaColors.primaryNavy,
             ),
@@ -209,8 +209,8 @@ class _QoffaSearchPickerSheetState<T> extends State<QoffaSearchPickerSheet<T>> {
             autofocus: true,
             textCapitalization: TextCapitalization.sentences,
             style: const TextStyle(
-              fontFamily: 'Inter',
-              fontSize: 16,
+              fontFamily: QoffaFontFamily.body,
+              fontSize: 17,
               fontWeight: FontWeight.w700,
               color: QoffaColors.primaryNavy,
             ),
@@ -259,8 +259,8 @@ class _QoffaSearchPickerSheetState<T> extends State<QoffaSearchPickerSheet<T>> {
                                 Text(
                                   l10n.cancel,
                                   style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 11,
+                                    fontFamily: QoffaFontFamily.body,
+                                    fontSize: QoffaFontSize.micro,
                                     fontWeight: FontWeight.w700,
                                     color: QoffaColors.actionGreen,
                                   ),
@@ -364,8 +364,8 @@ class _QoffaSearchPickerSheetState<T> extends State<QoffaSearchPickerSheet<T>> {
                                         )
                                       : l10n.create,
                                   style: const TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 13,
+                                    fontFamily: QoffaFontFamily.body,
+                                    fontSize: QoffaFontSize.bodySmall,
                                     fontWeight: FontWeight.w700,
                                     color: QoffaColors.actionGreen,
                                   ),
@@ -401,8 +401,8 @@ class _QoffaSearchPickerSheetState<T> extends State<QoffaSearchPickerSheet<T>> {
                 Text(
                   widget.recentTitle ?? l10n.recentActivity,
                   style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 14,
+                    fontFamily: QoffaFontFamily.body,
+                    fontSize: QoffaFontSize.body,
                     fontWeight: FontWeight.w800,
                     color: QoffaColors.primaryNavy,
                   ),

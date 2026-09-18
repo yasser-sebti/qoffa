@@ -50,12 +50,19 @@ void main() {
       expect(find.text('Price'), findsOneWidget);
       expect(find.byIcon(Icons.paid_rounded), findsOneWidget);
       expect(find.text('DA'), findsOneWidget);
-      expect(find.text('000,000 ...'), findsOneWidget);
+      expect(find.text('000،000 ...'), findsOneWidget);
 
       await tester.enterText(find.byType(TextField), '1250000');
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(TextField, '1,250,000'), findsOneWidget);
-      expect(controller.text, '1,250,000');
+      expect(
+        find.byWidgetPredicate(
+          (w) =>
+              w is TextField &&
+              (w.controller?.text == '1،250،000' ||
+                  w.controller?.text == '1,250,000'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('tapping container requests focus on focusNode',

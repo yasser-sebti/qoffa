@@ -21,6 +21,8 @@ abstract class LaterBuyRepository {
     DateTime? reminderAt,
   });
   Future<void> updateStatus(String id, String newStatus);
+  Future<void> updateObservedPrice(String id, int newPriceDzd);
+  Future<void> deleteLaterBuyItem(String id);
   Future<void> resolveAsBought({
     required String laterBuyId,
     required double quantity,
@@ -156,6 +158,16 @@ class DriftLaterBuyRepository implements LaterBuyRepository {
   }
 
   @override
+  Future<void> deleteLaterBuyItem(String id) async {
+    await (_db.update(_db.laterBuyItems)..where((t) => t.id.equals(id))).write(
+      LaterBuyItemsCompanion(
+        deletedAt: Value(DateTime.now().toUtc()),
+        updatedAt: Value(DateTime.now().toUtc()),
+      ),
+    );
+  }
+
+  @override
   Future<void> resolveAsBought({
     required String laterBuyId,
     required double quantity,
@@ -194,6 +206,16 @@ class DriftLaterBuyRepository implements LaterBuyRepository {
         ),
       );
     });
+  }
+
+  @override
+  Future<void> updateObservedPrice(String id, int newPriceDzd) async {
+    await (_db.update(_db.laterBuyItems)..where((t) => t.id.equals(id))).write(
+      LaterBuyItemsCompanion(
+        observedPriceDzd: Value(newPriceDzd),
+        updatedAt: Value(DateTime.now().toUtc()),
+      ),
+    );
   }
 }
 
