@@ -10,7 +10,9 @@ import '../../../core/money/dzd_amount.dart';
 import '../../../core/widgets/mint_background_scaffold.dart';
 import '../../../core/widgets/qoffa_layout.dart';
 import '../../../core/widgets/qoffa_motion.dart';
+import '../../../core/widgets/qoffa_pressable.dart';
 import '../../insights/domain/services/projection_engine.dart';
+import '../../later_buy/data/later_buy_repository.dart';
 import '../../products/presentation/product_details_modal.dart';
 import '../../purchases/data/purchase_repository.dart';
 import '../../settings/data/settings_repository.dart';
@@ -29,7 +31,8 @@ class HomeScreen extends ConsumerWidget {
     final previousMonthTotal = ref.watch(
       monthlyTotalProvider((year: previousMonthDate.year, month: previousMonthDate.month)),
     ).value;
-    final mostUsedProduct = ref.watch(mostUsedProductProvider).value;
+    final laterBuyPendingCount =
+        ref.watch(laterBuyPendingCountProvider).value ?? 0;
     final recentPurchases = ref.watch(
       recentPurchaseEntriesProvider(5),
     );
@@ -86,7 +89,7 @@ class HomeScreen extends ConsumerWidget {
                       projection: projection,
                       spent: spent,
                       previousMonthTotal: previousMonthTotal,
-                      mostUsedProduct: mostUsedProduct,
+                      laterBuyPendingCount: laterBuyPendingCount,
                       l10n: l10n,
                       locale: l10n.languageCode,
                     ),
@@ -767,7 +770,7 @@ class _HomeStatsRow extends StatelessWidget {
     required this.projection,
     required this.spent,
     required this.previousMonthTotal,
-    required this.mostUsedProduct,
+    required this.laterBuyPendingCount,
     required this.l10n,
     required this.locale,
   });
@@ -775,7 +778,7 @@ class _HomeStatsRow extends StatelessWidget {
   final MonthlyProjectionResult projection;
   final DzdAmount spent;
   final DzdAmount? previousMonthTotal;
-  final MostUsedProductResult? mostUsedProduct;
+  final int laterBuyPendingCount;
   final AppLocalizations l10n;
   final String locale;
 
@@ -829,20 +832,16 @@ class _HomeStatsRow extends StatelessWidget {
         ? const Color(0xFFFFECEC)
         : const Color(0xFFE8F7ED);
 
-    // Right card: most used item (header + subheader, simple, no percentage)
-    final topProductName = mostUsedProduct?.productName ?? l10n.noItemsYet;
-    final topProductSubheader = l10n.mostBoughtItem;
-
-    return Row(
-      children: [
-        // Left Card: Real-time user statistics
-        Expanded(
-          child: Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            child: InkWell(
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Left Card: Real-time user statistics
+          Expanded(
+            child: QoffaPressable(
               onTap: () => context.go('/calendar'),
               borderRadius: BorderRadius.circular(20),
+              backgroundColor: Colors.white,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                 decoration: BoxDecoration(
@@ -851,6 +850,7 @@ class _HomeStatsRow extends StatelessWidget {
                   border: Border.all(color: QoffaColors.softBorder, width: 1.2),
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
                       width: 44,
@@ -869,11 +869,12 @@ class _HomeStatsRow extends StatelessWidget {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           FittedBox(
                             fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
+                            alignment: AlignmentDirectional.centerStart,
                             child: Text(
                               statValue,
                               style: TextStyle(
@@ -907,23 +908,13 @@ class _HomeStatsRow extends StatelessWidget {
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 12),
-        // Right Card: Most used item
-        Expanded(
-          child: Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            child: InkWell(
-              onTap: () {
-                if (mostUsedProduct != null) {
-                  ProductDetailsModal.show(
-                    context,
-                    productId: mostUsedProduct!.productId,
-                  );
-                }
-              },
+          const SizedBox(width: 12),
+          // Right Card: Buy Later Watchlist
+          Expanded(
+            child: QoffaPressable(
+              onTap: () => context.go('/later-buy'),
               borderRadius: BorderRadius.circular(20),
+              backgroundColor: Colors.white,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                 decoration: BoxDecoration(
@@ -932,79 +923,56 @@ class _HomeStatsRow extends StatelessWidget {
                   border: Border.all(color: QoffaColors.softBorder, width: 1.2),
                 ),
                 child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
                       width: 44,
                       height: 44,
-                      decoration: BoxDecoration(
-                        color: mostUsedProduct != null
-                            ? const Color(0xFFFFF0EC)
-                            : QoffaColors.mintSurfaceTint,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFF0EC),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                        mostUsedProduct != null
-                            ? Icons.restaurant_rounded
-                            : Icons.inventory_2_outlined,
-                        color: mostUsedProduct != null
-                            ? const Color(0xFFE74C3C)
-                            : QoffaColors.mutedText,
-                        size: 22,
+                      child: const Icon(
+                        Icons.schedule_rounded,
+                        color: Color(0xFFE0533C),
+                        size: 24,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (mostUsedProduct == null)
-                            Text(
-                              topProductName,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: AlignmentDirectional.centerStart,
+                            child: Text(
+                              '$laterBuyPendingCount',
                               style: const TextStyle(
                                 fontFamily: QoffaFontFamily.display,
                                 fontFamilyFallback: QoffaFontFamily.fallback,
-                                fontSize: 16.0,
-                                fontWeight: FontWeight.w800,
-                                height: 1.15,
+                                fontSize: QoffaFontSize.titleLarge,
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
                                 color: QoffaColors.primaryNavy,
                               ),
-                            )
-                          else
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                topProductName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontFamily: QoffaFontFamily.display,
-                                  fontFamilyFallback: QoffaFontFamily.fallback,
-                                  fontSize: QoffaFontSize.titleMedium,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.1,
-                                  color: QoffaColors.primaryNavy,
-                                ),
-                              ),
                             ),
-                          if (mostUsedProduct != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              topProductSubheader,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontFamily: QoffaFontFamily.body,
-                                fontSize: QoffaFontSize.captionMedium,
-                                fontWeight: FontWeight.w600,
-                                height: 1.2,
-                                color: QoffaColors.secondarySage,
-                              ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            l10n.laterBuyTitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: QoffaFontFamily.body,
+                              fontSize: QoffaFontSize.captionMedium,
+                              fontWeight: FontWeight.w600,
+                              height: 1.2,
+                              color: QoffaColors.secondarySage,
                             ),
-                          ],
+                          ),
                         ],
                       ),
                     ),
@@ -1013,8 +981,8 @@ class _HomeStatsRow extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

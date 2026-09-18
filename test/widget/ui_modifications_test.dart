@@ -5,12 +5,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:qoffa/app/localization/app_localizations.dart';
+import 'package:qoffa/app/theme/qoffa_colors.dart';
 import 'package:qoffa/app/theme/qoffa_theme.dart';
 import 'package:qoffa/core/database/app_database.dart';
 import 'package:qoffa/core/database/database_provider.dart';
 import 'package:qoffa/core/money/dzd_amount.dart';
 import 'package:qoffa/core/widgets/qoffa_animated_counter.dart';
 import 'package:qoffa/core/widgets/qoffa_layout.dart';
+import 'package:qoffa/core/widgets/qoffa_pressable.dart';
 import 'package:qoffa/core/widgets/qoffa_tactile_pressable.dart';
 import 'package:qoffa/core/widgets/top_toast_notification.dart';
 import 'package:qoffa/features/home/presentation/home_screen.dart';
@@ -321,6 +323,40 @@ void main() {
       );
       expect(paidMoreResult.outcomeType, LaterBuyOutcomeType.paidMore);
       expect(paidMoreResult.absoluteDifferenceDzd.dinars, -30);
+    });
+  });
+
+  group('HomeScreen Stat Cards Symmetry and Watchlist Styling', () {
+    testWidgets('Both stat cards have identical dimensions and correct watchlist colors', (tester) async {
+      await tester.pumpWidget(
+        createTestableWidget(
+          child: const HomeScreen(),
+          db: db,
+          locale: const Locale('en'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final pressables = find.byType(QoffaPressable);
+      expect(pressables, findsAtLeastNWidgets(2));
+
+      final card1Size = tester.getSize(pressables.at(0));
+      final card2Size = tester.getSize(pressables.at(1));
+
+      // Both cards MUST have the exact same height and width
+      expect(card1Size.height, equals(card2Size.height));
+      expect(card1Size.width, equals(card2Size.width));
+
+      // Watchlist count header must NOT be green; must use primary navy normal text color
+      final countText = tester.widget<Text>(find.text('0'));
+      expect(countText.style?.color, equals(QoffaColors.primaryNavy));
+
+      // Watchlist icon must be coral, not green
+      final scheduleIcon = tester.widget<Icon>(find.byIcon(Icons.schedule_rounded));
+      expect(scheduleIcon.color, equals(const Color(0xFFE0533C)));
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(milliseconds: 50));
     });
   });
 }

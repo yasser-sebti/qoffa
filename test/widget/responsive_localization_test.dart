@@ -44,8 +44,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('Budget du mois'), findsOneWidget);
-    expect(find.text('Aucun article encore'), findsOneWidget);
-    expect(find.text('Article le plus acheté'), findsNothing);
+    expect(find.text('Acheter plus tard'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 20));
